@@ -5,7 +5,10 @@ set(TARGET_NAME ${PROJECT_NAME})
 set(TARGET_INCLUDE_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 
-set(TARGET_SOURCES "")
+set(TARGET_SOURCES
+        include/CAPE/cape.h
+        include/CAPE/histogram.hpp
+        src/cape.cpp)
 
 #####################################
 # Required packages
