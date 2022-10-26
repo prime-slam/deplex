@@ -3,18 +3,21 @@
 #include "config.hpp"
 
 #include <Eigen/Dense>
-#include <memory>
 
 namespace cape {
 class PlaneSeg {
  public:
-  PlaneSeg(Eigen::MatrixXf const& pcd_array);
+  PlaneSeg(int32_t cell_id, Eigen::MatrixXf const& pcd_array,
+           config::Config const& config);
+
+  PlaneSeg(PlaneSeg const& other) = default;
+  PlaneSeg &operator=(PlaneSeg const& other) = default;
+
   bool isPlanar() const;
 
  private:
-
-  std::unique_ptr<Eigen::MatrixXf const> const _ptr_pcd_array;
-  std::unique_ptr<config::Config const> const _config;
+  Eigen::MatrixXf const* const _ptr_pcd_array;
+  config::Config const* const _config;
   int32_t _nr_pts_per_cell;
   int32_t _cell_width;
   int32_t _cell_height;
@@ -25,6 +28,10 @@ class PlaneSeg {
   bool _isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
   bool _isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
 };
+
+PlaneSeg::PlaneSeg(int32_t cell_id, Eigen::MatrixXf const& pcd_array,
+                   config::Config const& config)
+    : _ptr_pcd_array(&pcd_array), _config(&config) {}
 
 bool PlaneSeg::isPlanar() const {
   return isValidPoints() && isDepthContinuous() && isValidMSE();
