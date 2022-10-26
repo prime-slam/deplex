@@ -8,6 +8,8 @@ set(TARGET_INCLUDE_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(TARGET_SOURCES
         include/CAPE/cape.h
         include/CAPE/histogram.hpp
+        include/CAPE/planeseg.hpp
+        include/CAPE/config.hpp
         src/cape.cpp)
 
 #####################################
