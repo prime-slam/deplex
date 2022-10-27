@@ -36,7 +36,7 @@ Config::Config() : _param_map(DEFAULT_PARAMETERS) {}
 std::string Config::findValue(std::string const& name) const {
   auto value_ptr = _param_map.find(name);
   if (value_ptr == _param_map.end())
-    throw std::runtime_error("Config invalid field provided: " + name);
+    throw std::runtime_error("Config invalid parameter name provided: " + name);
   return value_ptr->second;
 }
 
