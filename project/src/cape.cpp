@@ -3,7 +3,9 @@
 namespace cape {
 CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
     : _nr_horizontal_cells(image_width / config.getInt("patchSize")),
-      _nr_vertical_cells(image_height / config.getInt("patchSize")) {
+      _nr_vertical_cells(image_height / config.getInt("patchSize")),
+      _nr_pts_per_cell(pow(config.getInt("patchSize"), 2))
+{
   _nr_total_cells = _nr_vertical_cells * _nr_horizontal_cells;
 }
 
