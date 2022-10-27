@@ -11,11 +11,26 @@ class PlaneSeg {
            config::Config const& config);
 
   PlaneSeg(PlaneSeg const& other) = default;
-  PlaneSeg &operator=(PlaneSeg const& other) = default;
+  PlaneSeg& operator=(PlaneSeg const& other) = default;
 
   bool isPlanar() const;
+  Eigen::Vector3d const& getNormal() const { return _stats._normal; }
+  Eigen::Vector3d const& getMean() const { return _stats._mean; }
+  double getMSE() const { return _stats._mse; }
+  double getD() const { return _stats._d; }
 
  private:
+  struct Stats {
+    friend class PlaneSeg;
+
+   public:
+    Eigen::Vector3d _normal;
+    Eigen::Vector3d _mean;
+    double _d;
+    double _score;
+    double _mse;
+    float _x, _y, _z, _xx, _yy, _zz, _xy, _xz, _yz;
+  } _stats;
   Eigen::MatrixXf const* const _ptr_pcd_array;
   config::Config const* const _config;
   int32_t _nr_pts_per_cell;
