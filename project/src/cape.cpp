@@ -109,6 +109,8 @@ std::vector<PlaneSeg> CAPE::createPlaneSegments(
     std::bitset<BITSET_SIZE> activation_map;
     growSeed(x, y, seed_id, unassigned_mask, &activation_map, cell_dist_tols);
     // 4. Merge activated cells & remove from hist
+    // TODO:
+    exit(0);
   }
 }
 
