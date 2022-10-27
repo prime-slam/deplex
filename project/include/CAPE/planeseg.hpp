@@ -7,13 +7,13 @@
 namespace cape {
 class PlaneSeg {
  public:
-  PlaneSeg(int32_t cell_id, Eigen::MatrixXf const& pcd_array,
-           config::Config const& config);
+  PlaneSeg(int32_t cell_id, int32_t cell_width, int32_t cell_height,
+           Eigen::MatrixXf const& pcd_array, config::Config const& config);
 
   PlaneSeg(PlaneSeg const& other) = default;
   PlaneSeg& operator=(PlaneSeg const& other) = default;
 
-  bool isPlanar() const;
+  bool isPlanar();
   Eigen::Vector3d const& getNormal() const { return _stats._normal; }
   Eigen::Vector3d const& getMean() const { return _stats._mean; }
   double getMSE() const { return _stats._mse; }
@@ -24,6 +24,11 @@ class PlaneSeg {
     friend class PlaneSeg;
 
    public:
+    Stats();
+    Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
+          Eigen::VectorXf const& Z);
+
+   private:
     Eigen::Vector3d _normal;
     Eigen::Vector3d _mean;
     double _d;
@@ -39,17 +44,68 @@ class PlaneSeg {
   int32_t _offset;
   bool isValidPoints() const;
   bool isDepthContinuous() const;
-  bool isValidMSE() const;
   bool _isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
   bool _isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
+  void calculateStats();
 };
 
-PlaneSeg::PlaneSeg(int32_t cell_id, Eigen::MatrixXf const& pcd_array,
-                   config::Config const& config)
-    : _ptr_pcd_array(&pcd_array), _config(&config) {}
+PlaneSeg::Stats::Stats() : _mse(-1) {}
 
-bool PlaneSeg::isPlanar() const {
-  return isValidPoints() && isDepthContinuous() && isValidMSE();
+PlaneSeg::Stats::Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
+                       Eigen::VectorXf const& Z)
+    : _x(X.sum()),
+      _y(Y.sum()),
+      _z(Z.sum()),
+      _xx(X.dot(X)),
+      _yy(Y.dot(Y)),
+      _zz(Z.dot(Z)),
+      _xy(X.dot(Y)),
+      _xz(X.dot(Z)),
+      _yz(Y.dot(Z)) {
+  int32_t nr_pts = X.size();
+  _mean = Eigen::Vector3d(_x, _y, _z) / nr_pts;
+
+  Eigen::Matrix3d cov{
+      {_xx - _x * _x / nr_pts, _xy - _x * _y / nr_pts, _xz - _x * _z / nr_pts},
+      {0.0, _yy - _y * _y / nr_pts, _yz - _y * _z / nr_pts},
+      {0.0, 0.0, _zz - _z * _z / nr_pts}};
+
+  cov(1, 0) = cov(0, 1);
+  cov(2, 0) = cov(0, 2);
+  cov(2, 1) = cov(1, 2);
+
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(cov);
+  Eigen::VectorXd v = es.eigenvectors().col(0);
+
+  _d = -_mean.dot(v);
+  // Enforce normal orientation
+  _normal = (_d > 0 ? v : -v);
+  _d = (_d > 0 ? _d : -_d);
+
+  _mse = es.eigenvalues()[0] / nr_pts;
+  _score = es.eigenvalues()[1] / es.eigenvalues()[0];
+}
+
+PlaneSeg::PlaneSeg(int32_t cell_id, int32_t cell_width, int32_t cell_height,
+                   Eigen::MatrixXf const& pcd_array,
+                   config::Config const& config)
+    : _ptr_pcd_array(&pcd_array),
+      _config(&config),
+      _nr_pts_per_cell(cell_width * cell_height),
+      _cell_width(cell_width),
+      _cell_height(cell_height),
+      _offset(cell_id * cell_width * cell_height) {}
+
+bool PlaneSeg::isPlanar() {
+  if (isValidPoints() && isDepthContinuous()) {
+    calculateStats();
+    float depth_sigma_coeff = _config->getFloat("depthSigmaCoeff");
+    float depth_sigma_margin = _config->getFloat("depthSigmaMargin");
+    float planar_threshold =
+        depth_sigma_coeff * pow(_stats._mean[2], 2) + depth_sigma_margin;
+    return _stats._mse <= pow(planar_threshold, 2);
+  }
+  return false;
 }
 
 bool PlaneSeg::isValidPoints() const {
@@ -102,6 +158,17 @@ bool PlaneSeg::isDepthContinuous() const {
           .reshaped(_cell_height, _cell_width);
 
   return _isHorizontalContinuous(cell_z) && _isVerticalContinuous(cell_z);
+}
+
+void PlaneSeg::calculateStats() {
+  Eigen::VectorXf cell_x =
+      _ptr_pcd_array->block(_offset, 0, _nr_pts_per_cell, 1);
+  Eigen::VectorXf cell_y =
+      _ptr_pcd_array->block(_offset, 1, _nr_pts_per_cell, 1);
+  Eigen::VectorXf cell_z =
+      _ptr_pcd_array->block(_offset, 2, _nr_pts_per_cell, 1);
+
+  _stats = Stats(cell_x, cell_y, cell_z);
 }
 
 }  // namespace cape

@@ -23,11 +23,13 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
 std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
     Eigen::MatrixXf const& pcd_array) {
   std::bitset<BITSET_SIZE> planar_flags;
+  int32_t cell_width = _config.getInt("patchSize");
+  int32_t cell_height = _config.getInt("patchSize");
   int32_t stacked_cell_id = 0;
   for (Eigen::Index cell_r = 0; cell_r < _nr_vertical_cells; ++cell_r) {
     for (Eigen::Index cell_h = 0; cell_h < _nr_horizontal_cells; ++cell_h) {
-      _cell_grid[stacked_cell_id] =
-          std::make_shared<PlaneSeg>(stacked_cell_id, pcd_array, _config);
+      _cell_grid[stacked_cell_id] = std::make_shared<PlaneSeg>(
+          stacked_cell_id, cell_width, cell_height, pcd_array, _config);
       planar_flags[stacked_cell_id] = _cell_grid[stacked_cell_id]->isPlanar();
       ++stacked_cell_id;
     }
@@ -106,9 +108,7 @@ std::vector<PlaneSeg> CAPE::createPlaneSegments(
     int32_t x = seed_id / _nr_vertical_cells;
     std::bitset<BITSET_SIZE> activation_map;
     growSeed(x, y, seed_id, unassigned_mask, &activation_map, cell_dist_tols);
-
     // 4. Merge activated cells & remove from hist
-    // TODO
   }
 }
 
