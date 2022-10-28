@@ -35,9 +35,14 @@ class CAPE {
   std::vector<std::shared_ptr<PlaneSeg>> createPlaneSegments(
       Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags,
       std::vector<float> const& cell_dist_tols);
+  std::vector<int32_t> mergePlanes(
+      std::vector<std::shared_ptr<PlaneSeg>> & plane_segments);
   void growSeed(int32_t x, int32_t y, int32_t prev_index,
                 std::bitset<BITSET_SIZE> const& unassigned,
                 std::bitset<BITSET_SIZE>* activation_map,
-                std::vector<float> const& cell_dist_tols);
+                std::vector<float> const& cell_dist_tols) const;
+
+  std::vector<std::bitset<BITSET_SIZE>> getConnectedComponents(
+      size_t nr_planes) const;
 };
 }  // namespace cape

@@ -1,5 +1,6 @@
 #include "CAPE/cape.h"
 #include <iostream>
+#include <numeric>
 
 namespace cape {
 CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
@@ -20,8 +21,9 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   std::vector<float> cell_dist_tols =
       computeCellDistTols(pcd_array, planar_flags);
   // 4. Region growing
-  auto plane_segments =
-      CAPE::createPlaneSegments(hist, planar_flags, cell_dist_tols);
+  auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
+  // 5. Merge planes
+  std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
 }
 
 std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
@@ -151,10 +153,45 @@ std::vector<std::shared_ptr<PlaneSeg>> CAPE::createPlaneSegments(
   return plane_segments;
 }
 
+std::vector<int32_t> CAPE::mergePlanes(
+    std::vector<std::shared_ptr<PlaneSeg>>& plane_segments) {
+  size_t nr_planes = plane_segments.size();
+  // Boolean matrix [nr_planes X nr_planes]
+  auto planes_association_mx = getConnectedComponents(nr_planes);
+  std::vector<int32_t> plane_merge_labels(nr_planes);
+  std::iota(plane_merge_labels.begin(), plane_merge_labels.end(), 0);
+
+  // Connect compatible planes
+  for (size_t row_id = 0; row_id < nr_planes; ++row_id) {
+    int32_t plane_id = plane_merge_labels[row_id];
+    bool plane_expanded = false;
+    for (size_t col_id = planes_association_mx[row_id]._Find_next(row_id);
+         col_id != planes_association_mx[row_id].size();
+         col_id = planes_association_mx[row_id]._Find_next(row_id)) {
+      double cos_angle = plane_segments[plane_id]->getNormal().dot(
+          plane_segments[col_id]->getNormal());
+      double distance = pow(plane_segments[plane_id]->getNormal().dot(
+                                plane_segments[col_id]->getMean()),
+                            2);
+      if (cos_angle > _config.getFloat("minCosAngleForMerge") &&
+          distance < _config.getFloat("maxMergeDist")) {
+        (*plane_segments[plane_id]) += (*plane_segments[col_id]);
+        plane_merge_labels[col_id] = plane_id;
+        plane_expanded = true;
+      } else {
+        planes_association_mx[row_id][col_id] = false;
+      }
+    }
+    if (plane_expanded) plane_segments[plane_id]->calculateStats();
+  }
+
+  return plane_merge_labels;
+}
+
 void CAPE::growSeed(int32_t x, int32_t y, int32_t prev_index,
                     std::bitset<BITSET_SIZE> const& unassigned,
                     std::bitset<BITSET_SIZE>* activation_map,
-                    std::vector<float> const& cell_dist_tols) {
+                    std::vector<float> const& cell_dist_tols) const {
   int32_t index = x + _nr_horizontal_cells * y;
   if (index >= _nr_total_cells)
     throw std::out_of_range("growSeed: Index out of total cell number");
@@ -183,6 +220,34 @@ void CAPE::growSeed(int32_t x, int32_t y, int32_t prev_index,
     growSeed(x, y - 1, index, unassigned, activation_map, cell_dist_tols);
   if (y < _nr_vertical_cells - 1)
     growSeed(x, y + 1, index, unassigned, activation_map, cell_dist_tols);
+}
+
+std::vector<std::bitset<BITSET_SIZE>> CAPE::getConnectedComponents(
+    size_t nr_planes) const {
+  std::vector<std::bitset<BITSET_SIZE>> planes_assoc_matrix(nr_planes);
+
+  for (int32_t row_id = 0; row_id < _grid_plane_seg_map.rows - 1; ++row_id) {
+    auto row = _grid_plane_seg_map.ptr<int>(row_id);
+    auto next_row = _grid_plane_seg_map.ptr<int>(row_id + 1);
+    for (int32_t col_id = 0; col_id < _grid_plane_seg_map.cols - 1; ++col_id) {
+      auto plane_id = row[col_id];
+      if (plane_id > 0) {
+        if (row[col_id + 1] > 0 && plane_id != row[col_id + 1])
+          planes_assoc_matrix[plane_id - 1][row[col_id + 1] - 1] = true;
+        if (next_row[col_id] > 0 && plane_id != next_row[col_id])
+          planes_assoc_matrix[plane_id - 1][next_row[col_id] - 1] = true;
+      }
+    }
+  }
+  for (int32_t row_id = 0; row_id < planes_assoc_matrix.size(); ++row_id) {
+    for (int32_t col_id = 0; col_id < planes_assoc_matrix.size(); ++col_id) {
+      planes_assoc_matrix[row_id][col_id] =
+          planes_assoc_matrix[row_id][col_id] ||
+          planes_assoc_matrix[col_id][row_id];
+    }
+  }
+
+  return planes_assoc_matrix;
 }
 
 }  // namespace cape
