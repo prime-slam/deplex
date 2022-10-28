@@ -1,13 +1,15 @@
 #include "CAPE/cape.h"
+#include <iostream>
 
 namespace cape {
 CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
-    : _nr_horizontal_cells(image_width / config.getInt("patchSize")),
+    : _config(config),
+      _nr_horizontal_cells(image_width / config.getInt("patchSize")),
       _nr_vertical_cells(image_height / config.getInt("patchSize")),
-      _nr_pts_per_cell(pow(config.getInt("patchSize"), 2))
-{
-  _nr_total_cells = _nr_vertical_cells * _nr_horizontal_cells;
-}
+      _nr_total_cells(_nr_horizontal_cells * _nr_vertical_cells),
+      _nr_pts_per_cell(pow(config.getInt("patchSize"), 2)),
+      _cell_grid(_nr_total_cells, nullptr),
+      _grid_plane_seg_map(_nr_vertical_cells, _nr_horizontal_cells, 0) {}
 
 void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   // 1. Planar cell fitting
@@ -18,7 +20,7 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   std::vector<float> cell_dist_tols =
       computeCellDistTols(pcd_array, planar_flags);
   // 4. Region growing
-  std::vector<PlaneSeg> plane_segments =
+  auto plane_segments =
       CAPE::createPlaneSegments(hist, planar_flags, cell_dist_tols);
 }
 
@@ -83,14 +85,14 @@ std::vector<float> CAPE::computeCellDistTols(
   return cell_dist_tols;
 }
 
-std::vector<PlaneSeg> CAPE::createPlaneSegments(
+std::vector<std::shared_ptr<PlaneSeg>> CAPE::createPlaneSegments(
     Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags,
     std::vector<float> const& cell_dist_tols) {
-  std::vector<PlaneSeg> plane_segments;
+  std::vector<std::shared_ptr<PlaneSeg>> plane_segments;
   std::bitset<BITSET_SIZE> unassigned_mask(planar_flags);
-  auto nr_planar_cells = static_cast<int32_t>(planar_flags.count());
+  auto remaining_planar_cells = static_cast<int32_t>(planar_flags.count());
 
-  while (nr_planar_cells > 0) {
+  while (remaining_planar_cells > 0) {
     // 1. Seeding
     std::vector<int32_t> seed_candidates = hist.getPointsFromMostFrequentBin();
     if (seed_candidates.size() <
@@ -98,22 +100,55 @@ std::vector<PlaneSeg> CAPE::createPlaneSegments(
       return plane_segments;
     }
     // 2. Select seed with minimum MSE
-    auto ptr_min_mse_seed = std::min_element(
-        seed_candidates.begin(), seed_candidates.end(),
-        [this](int32_t lhs, int32_t rhs) {
-          return _cell_grid[lhs]->getMSE() < _cell_grid[rhs]->getMSE();
-        });
-    int32_t seed_id = std::distance(seed_candidates.begin(), ptr_min_mse_seed);
+    int32_t seed_id;
+    double min_mse = INT_MAX;
+    for (int32_t seed_candidate : seed_candidates) {
+      if (_cell_grid[seed_candidate]->getMSE() < min_mse) {
+        seed_id = seed_candidate;
+        min_mse = _cell_grid[seed_candidate]->getMSE();
+      }
+    }
     // 3. Grow seed
     std::shared_ptr<PlaneSeg> new_segment = _cell_grid[seed_id];
     int32_t y = seed_id / _nr_horizontal_cells;
-    int32_t x = seed_id / _nr_vertical_cells;
+    int32_t x = seed_id % _nr_horizontal_cells;
     std::bitset<BITSET_SIZE> activation_map;
     growSeed(x, y, seed_id, unassigned_mask, &activation_map, cell_dist_tols);
     // 4. Merge activated cells & remove from hist
-    // TODO:
-    exit(0);
+    for (size_t i = activation_map._Find_first(); i != activation_map.size();
+         i = activation_map._Find_next(i)) {
+      *new_segment += *_cell_grid[i];
+      hist.removePoint(static_cast<int32_t>(i));
+      --remaining_planar_cells;
+    }
+    unassigned_mask &= (~activation_map);
+    size_t nr_cells_activated = activation_map.count();
+
+    if (nr_cells_activated < _config.getInt("minRegionGrowingCellsActivated")) {
+      continue;
+    }
+
+    new_segment->calculateStats();
+
+    // 5. Model fitting
+    if (new_segment->getScore() > _config.getFloat("minRegionPlanarityScore")) {
+      plane_segments.push_back(new_segment);
+      auto nr_curr_planes = static_cast<int32_t>(plane_segments.size());
+      // Mark cells
+      int stacked_cell_id = 0;
+      for (int32_t row_id = 0; row_id < _nr_vertical_cells; ++row_id){
+        auto row = _grid_plane_seg_map.ptr<int32_t>(row_id);
+        for (int32_t col_id = 0; col_id < _nr_vertical_cells; ++col_id){
+          if (activation_map[stacked_cell_id]){
+            row[col_id] = nr_curr_planes;
+          }
+          ++stacked_cell_id;
+        }
+      }
+    }
   }
+
+  return plane_segments;
 }
 
 void CAPE::growSeed(int32_t x, int32_t y, int32_t prev_index,

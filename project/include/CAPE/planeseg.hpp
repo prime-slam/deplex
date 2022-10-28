@@ -13,9 +13,13 @@ class PlaneSeg {
   PlaneSeg(PlaneSeg const& other) = default;
   PlaneSeg& operator=(PlaneSeg const& other) = default;
 
+  PlaneSeg& operator+=(PlaneSeg const& other);
+
+  void calculateStats();
   bool isPlanar();
   Eigen::Vector3d const& getNormal() const { return _stats._normal; }
   Eigen::Vector3d const& getMean() const { return _stats._mean; }
+  double getScore() const { return _stats._score; }
   double getMSE() const { return _stats._mse; }
   double getD() const { return _stats._d; }
 
@@ -46,8 +50,20 @@ class PlaneSeg {
   bool isDepthContinuous() const;
   bool _isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
   bool _isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
-  void calculateStats();
 };
+
+PlaneSeg& PlaneSeg::operator+=(PlaneSeg const& other) {
+  _stats._x += other._stats._x;
+  _stats._y += other._stats._y;
+  _stats._z += other._stats._z;
+  _stats._xx += other._stats._xx;
+  _stats._yy += other._stats._yy;
+  _stats._zz += other._stats._zz;
+  _stats._xy += other._stats._xy;
+  _stats._xz += other._stats._xz;
+  _stats._yz += other._stats._yz;
+  return *this;
+}
 
 PlaneSeg::Stats::Stats() : _mse(-1) {}
 
