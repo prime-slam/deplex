@@ -24,6 +24,10 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
   // 5. Merge planes
   std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
+  // 6. Refinement (optional)
+  if (_config.getBool("doRefinement")){
+    refinePlanes();
+  }
 }
 
 std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
@@ -186,6 +190,10 @@ std::vector<int32_t> CAPE::mergePlanes(
   }
 
   return plane_merge_labels;
+}
+
+void CAPE::refinePlanes() {
+  std::cerr << "Refinement not yet implemented\n";
 }
 
 void CAPE::growSeed(int32_t x, int32_t y, int32_t prev_index,
