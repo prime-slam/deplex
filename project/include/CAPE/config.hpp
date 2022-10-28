@@ -13,6 +13,8 @@ const std::map<std::string, std::string> DEFAULT_PARAMETERS{
     {"minCosAngleForMerge", "0.93"},
     {"maxMergeDist", "500"},
     {"minRegionGrowingCandidateSize", "5"},
+    {"minRegionGrowingCellsActivated", "4"},
+    {"minRegionPlanarityScore", "50"},
     // Parameters used in plane validation
     {"depthSigmaCoeff", "1.425e-6"},
     {"depthSigmaMargin", "10"},
