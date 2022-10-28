@@ -37,6 +37,7 @@ class CAPE {
       std::vector<float> const& cell_dist_tols);
   std::vector<int32_t> mergePlanes(
       std::vector<std::shared_ptr<PlaneSeg>> & plane_segments);
+  void refinePlanes();
   void growSeed(int32_t x, int32_t y, int32_t prev_index,
                 std::bitset<BITSET_SIZE> const& unassigned,
                 std::bitset<BITSET_SIZE>* activation_map,
