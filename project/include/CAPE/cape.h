@@ -13,7 +13,12 @@
 #define BITSET_SIZE 65536  // 2^16
 #endif
 
+#define DEBUG_CAPE
+
 namespace cape {
+
+typedef uchar label_t;
+
 class CAPE {
  public:
   CAPE(int32_t image_height, int32_t image_width, config::Config config);
@@ -25,6 +30,8 @@ class CAPE {
   int32_t _nr_vertical_cells;
   int32_t _nr_total_cells;
   int32_t _nr_pts_per_cell;
+  int32_t _image_height;
+  int32_t _image_width;
   std::vector<std::shared_ptr<PlaneSeg>> _cell_grid;
   cv::Mat_<int32_t> _grid_plane_seg_map;
   std::bitset<BITSET_SIZE> findPlanarCells(Eigen::MatrixXf const& pcd_array);
@@ -45,5 +52,10 @@ class CAPE {
 
   std::vector<std::bitset<BITSET_SIZE>> getConnectedComponents(
       size_t nr_planes) const;
+
+#ifdef DEBUG_CAPE
+  void planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
+                           std::string const& save_path);
+#endif
 };
 }  // namespace cape
