@@ -23,6 +23,8 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   std::bitset<BITSET_SIZE> planar_flags = findPlanarCells(pcd_array);
 #ifdef DEBUG_CAPE
   planarCellsToLabels(planar_flags, "dbg_1_planar_cells.csv");
+  std::clog << "[DebugInfo] Planar cell found: " << planar_flags.count()
+            << '\n';
 #endif
   // 2. Histogram initialization
   Histogram hist = initializeHistogram(planar_flags);
@@ -31,12 +33,17 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
       computeCellDistTols(pcd_array, planar_flags);
   // 4. Region growing
   auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
-  // 5. Merge planes
-  std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
-  // 6. Refinement (optional)
-  if (_config.getBool("doRefinement")){
-    refinePlanes();
-  }
+#ifdef DEBUG_CAPE
+  planeSegmentsMapToLabels("dbg_2_plane_segments_raw.csv");
+  std::clog << "[DebugInfo] Plane segments found: " << plane_segments.size()
+            << '\n';
+#endif
+    // 5. Merge planes
+    std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
+    // 6. Refinement (optional)
+    if (_config.getBool("doRefinement")){
+      refinePlanes();
+    }
 }
 
 std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
@@ -299,8 +306,8 @@ void CAPE::planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
     // Fill cell with label
     auto label_row = cell_row * cell_height;
     auto label_col = cell_col * cell_width;
-    for (auto i = label_row; i < label_row + cell_height; ++i){
-      for (auto j = label_col; j < label_col + cell_width; ++j){
+    for (auto i = label_row; i < label_row + cell_height; ++i) {
+      for (auto j = label_col; j < label_col + cell_width; ++j) {
         labels[i][j] = static_cast<int32_t>(cell_id);
       }
     }
@@ -308,6 +315,34 @@ void CAPE::planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
 
   vectorToCSV(labels, save_path);
 }
+
+void CAPE::planeSegmentsMapToLabels(std::string const& save_path) {
+  std::vector<std::vector<int32_t>> labels(
+      _image_height, std::vector<int32_t>(_image_width, 0));
+
+  int32_t cell_width = _config.getInt("patchSize");
+  int32_t cell_height = _config.getInt("patchSize");
+
+  int32_t stacked_cell_id = 0;
+  for (auto row = 0; row < _grid_plane_seg_map.rows; ++row) {
+    for (auto col = 0; col < _grid_plane_seg_map.cols; ++col) {
+      auto cell_row = stacked_cell_id / _nr_horizontal_cells;
+      auto cell_col = stacked_cell_id % _nr_horizontal_cells;
+      // Fill cell with label
+      auto label_row = cell_row * cell_height;
+      auto label_col = cell_col * cell_width;
+      for (auto i = label_row; i < label_row + cell_height; ++i) {
+        for (auto j = label_col; j < label_col + cell_width; ++j) {
+          labels[i][j] = _grid_plane_seg_map[row][col];
+        }
+      }
+      ++stacked_cell_id;
+    }
+  }
+
+  vectorToCSV(labels, save_path);
+}
+
 #endif
 
 }  // namespace cape
