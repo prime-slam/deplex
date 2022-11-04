@@ -1,6 +1,10 @@
 #include "CAPE/cape.h"
-#include <iostream>
 #include <numeric>
+
+#ifdef DEBUG_CAPE
+#include <iostream>
+#include <fstream>
+#endif
 
 namespace cape {
 CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
@@ -9,12 +13,17 @@ CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
       _nr_vertical_cells(image_height / config.getInt("patchSize")),
       _nr_total_cells(_nr_horizontal_cells * _nr_vertical_cells),
       _nr_pts_per_cell(pow(config.getInt("patchSize"), 2)),
+      _image_height(image_height),
+      _image_width(image_width),
       _cell_grid(_nr_total_cells, nullptr),
       _grid_plane_seg_map(_nr_vertical_cells, _nr_horizontal_cells, 0) {}
 
 void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   // 1. Planar cell fitting
   std::bitset<BITSET_SIZE> planar_flags = findPlanarCells(pcd_array);
+#ifdef DEBUG_CAPE
+  planarCellsToLabels(planar_flags, "dbg_1_planar_cells.csv");
+#endif
   // 2. Histogram initialization
   Histogram hist = initializeHistogram(planar_flags);
   // 3. Compute cell dist tols
@@ -257,5 +266,48 @@ std::vector<std::bitset<BITSET_SIZE>> CAPE::getConnectedComponents(
 
   return planes_assoc_matrix;
 }
+
+#ifdef DEBUG_CAPE
+
+template<typename T>
+void vectorToCSV(std::vector<std::vector<T>> const& data, std::string const& out_path, char sep=','){
+  std::ofstream f_out(out_path);
+  for (const auto & row : data){
+    for (auto value = row.begin(); value != row.end(); ++value){
+      if (value != row.begin()){
+        f_out << sep;
+      }
+      f_out << *value;
+    }
+    f_out << '\n';
+  }
+}
+
+void CAPE::planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
+                               std::string const& save_path) {
+  std::vector<std::vector<int32_t>> labels(
+      _image_height, std::vector<int32_t>(_image_width, 0));
+
+  int32_t cell_width = _config.getInt("patchSize");
+  int32_t cell_height = _config.getInt("patchSize");
+
+  for (auto cell_id = planar_flags._Find_first();
+       cell_id != planar_flags.size();
+       cell_id = planar_flags._Find_next(cell_id)) {
+    auto cell_row = cell_id / _nr_horizontal_cells;
+    auto cell_col = cell_id % _nr_horizontal_cells;
+    // Fill cell with label
+    auto label_row = cell_row * cell_height;
+    auto label_col = cell_col * cell_width;
+    for (auto i = label_row; i < label_row + cell_height; ++i){
+      for (auto j = label_col; j < label_col + cell_width; ++j){
+        labels[i][j] = static_cast<int32_t>(cell_id);
+      }
+    }
+  }
+
+  vectorToCSV(labels, save_path);
+}
+#endif
 
 }  // namespace cape
