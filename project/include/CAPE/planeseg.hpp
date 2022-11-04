@@ -33,12 +33,14 @@ class PlaneSeg {
           Eigen::VectorXf const& Z);
 
    private:
+    void makePCA();
     Eigen::Vector3d _normal;
     Eigen::Vector3d _mean;
     double _d;
     double _score;
     double _mse;
     float _x, _y, _z, _xx, _yy, _zz, _xy, _xz, _yz;
+    int32_t _nr_pts;
   } _stats;
   Eigen::MatrixXf const* const _ptr_pcd_array;
   config::Config const* const _config;
@@ -50,6 +52,7 @@ class PlaneSeg {
   bool isDepthContinuous() const;
   bool _isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
   bool _isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
+  void initStats();
 };
 
 PlaneSeg& PlaneSeg::operator+=(PlaneSeg const& other) {
@@ -62,6 +65,7 @@ PlaneSeg& PlaneSeg::operator+=(PlaneSeg const& other) {
   _stats._xy += other._stats._xy;
   _stats._xz += other._stats._xz;
   _stats._yz += other._stats._yz;
+  _stats._nr_pts += other._stats._nr_pts;
   return *this;
 }
 
@@ -77,14 +81,18 @@ PlaneSeg::Stats::Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
       _zz(Z.dot(Z)),
       _xy(X.dot(Y)),
       _xz(X.dot(Z)),
-      _yz(Y.dot(Z)) {
-  int32_t nr_pts = X.size();
-  _mean = Eigen::Vector3d(_x, _y, _z) / nr_pts;
+      _yz(Y.dot(Z)),
+      _nr_pts(X.size()) {
+  makePCA();
+}
 
-  Eigen::Matrix3d cov{
-      {_xx - _x * _x / nr_pts, _xy - _x * _y / nr_pts, _xz - _x * _z / nr_pts},
-      {0.0, _yy - _y * _y / nr_pts, _yz - _y * _z / nr_pts},
-      {0.0, 0.0, _zz - _z * _z / nr_pts}};
+void PlaneSeg::Stats::makePCA() {
+  _mean = Eigen::Vector3d(_x, _y, _z) / _nr_pts;
+
+  Eigen::Matrix3d cov{{_xx - _x * _x / _nr_pts, _xy - _x * _y / _nr_pts,
+                       _xz - _x * _z / _nr_pts},
+                      {0.0, _yy - _y * _y / _nr_pts, _yz - _y * _z / _nr_pts},
+                      {0.0, 0.0, _zz - _z * _z / _nr_pts}};
 
   cov(1, 0) = cov(0, 1);
   cov(2, 0) = cov(0, 2);
@@ -98,7 +106,7 @@ PlaneSeg::Stats::Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
   _normal = (_d > 0 ? v : -v);
   _d = (_d > 0 ? _d : -_d);
 
-  _mse = es.eigenvalues()[0] / nr_pts;
+  _mse = es.eigenvalues()[0] / _nr_pts;
   _score = es.eigenvalues()[1] / es.eigenvalues()[0];
 }
 
@@ -114,7 +122,7 @@ PlaneSeg::PlaneSeg(int32_t cell_id, int32_t cell_width, int32_t cell_height,
 
 bool PlaneSeg::isPlanar() {
   if (isValidPoints() && isDepthContinuous()) {
-    calculateStats();
+    initStats();
     float depth_sigma_coeff = _config->getFloat("depthSigmaCoeff");
     float depth_sigma_margin = _config->getFloat("depthSigmaMargin");
     float planar_threshold =
@@ -176,7 +184,7 @@ bool PlaneSeg::isDepthContinuous() const {
   return _isHorizontalContinuous(cell_z) && _isVerticalContinuous(cell_z);
 }
 
-void PlaneSeg::calculateStats() {
+void PlaneSeg::initStats() {
   Eigen::VectorXf cell_x =
       _ptr_pcd_array->block(_offset, 0, _nr_pts_per_cell, 1);
   Eigen::VectorXf cell_y =
@@ -186,5 +194,7 @@ void PlaneSeg::calculateStats() {
 
   _stats = Stats(cell_x, cell_y, cell_z);
 }
+
+void PlaneSeg::calculateStats() { _stats.makePCA(); }
 
 }  // namespace cape
