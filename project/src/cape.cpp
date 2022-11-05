@@ -160,7 +160,7 @@ std::vector<std::shared_ptr<PlaneSeg>> CAPE::createPlaneSegments(
       int stacked_cell_id = 0;
       for (int32_t row_id = 0; row_id < _nr_vertical_cells; ++row_id){
         auto row = _grid_plane_seg_map.ptr<int32_t>(row_id);
-        for (int32_t col_id = 0; col_id < _nr_vertical_cells; ++col_id){
+        for (int32_t col_id = 0; col_id < _nr_horizontal_cells; ++col_id){
           if (activation_map[stacked_cell_id]){
             row[col_id] = nr_curr_planes;
           }
