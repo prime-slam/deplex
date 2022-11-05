@@ -56,7 +56,10 @@ class CAPE {
 #ifdef DEBUG_CAPE
   void planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
                            std::string const& save_path);
-  void planeSegmentsMapToLabels(std::string const& save_path);
+  void planeSegmentsMapToLabels(std::string const& save_path,
+                                cv::Mat_<int32_t> const& cell_map);
+  void mergeSegmentsToLabels(std::string const& save_path,
+                             std::vector<int32_t> const& merge_labels);
 #endif
 };
 }  // namespace cape
