@@ -1,10 +1,37 @@
 #pragma once
 
 #include <cstdint>
+#include <fstream>
+#include <iostream>
 #include <map>
 #include <string>
 
 namespace cape::config {
+namespace ini_read {
+std::map<std::string, std::string> iniLoad(std::string iniFileName) {
+  std::map<std::string, std::string> parameters;
+  std::ifstream ini_file(iniFileName);
+  if (!ini_file.is_open()) {
+    std::cerr << "Error! Couldn't open ini file: " << iniFileName << '\n';
+    return {};
+  }
+  while (ini_file) {
+    std::string line;
+    std::getline(ini_file, line);
+    if (line.empty() || line[0] == '#') continue;
+    std::string key, value;
+    size_t eqPos = line.find_first_of("=");
+    if (eqPos == std::string::npos || eqPos == 0) {
+      continue;
+    }
+    key = line.substr(0, eqPos);
+    value = line.substr(eqPos + 1);
+    parameters[key] = value;
+  }
+
+  return parameters;
+}
+}  // namespace ini_read
 // Default parameters for 'TUM_fr3_long_office_validation'
 const std::map<std::string, std::string> DEFAULT_PARAMETERS{
     // General parameters
@@ -26,6 +53,7 @@ const std::map<std::string, std::string> DEFAULT_PARAMETERS{
 class Config {
  public:
   Config();
+  Config(std::string const& config_path);
   inline int32_t getInt(std::string const& param_name) const;
   inline float getFloat(std::string const& param_name) const;
   inline bool getBool(std::string const& param_name) const;
@@ -36,6 +64,17 @@ class Config {
 };
 
 Config::Config() : _param_map(DEFAULT_PARAMETERS) {}
+
+Config::Config(std::string const& config_path)
+    : _param_map(ini_read::iniLoad(config_path)) {
+  for (auto const& [key, value] : DEFAULT_PARAMETERS) {
+    if (_param_map.find(key) == _param_map.end()) {
+      std::cerr << "Warning! Couldn't find parameter '" << key
+                << "', using default value = " << value << '\n';
+      _param_map[key] = value;
+    }
+  }
+}
 
 std::string Config::findValue(std::string const& name) const {
   auto value_ptr = _param_map.find(name);
