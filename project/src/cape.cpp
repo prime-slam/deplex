@@ -34,13 +34,14 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   // 4. Region growing
   auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
 #ifdef DEBUG_CAPE
-  planeSegmentsMapToLabels("dbg_2_plane_segments_raw.csv");
+  planeSegmentsMapToLabels("dbg_2_plane_segments_raw.csv", _grid_plane_seg_map);
   std::clog << "[DebugInfo] Plane segments found: " << plane_segments.size()
             << '\n';
 #endif
   // 5. Merge planes
   std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
 #ifdef DEBUG_CAPE
+  mergeSegmentsToLabels("dbg_3_plane_segments_merged.csv", merge_labels);
   std::vector<int32_t> sorted_labels(merge_labels);
   std::sort(sorted_labels.begin(), sorted_labels.end());
 
@@ -327,7 +328,8 @@ void CAPE::planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
   vectorToCSV(labels, save_path);
 }
 
-void CAPE::planeSegmentsMapToLabels(std::string const& save_path) {
+void CAPE::planeSegmentsMapToLabels(std::string const& save_path,
+                                    cv::Mat_<int32_t> const& cell_map) {
   std::vector<std::vector<int32_t>> labels(
       _image_height, std::vector<int32_t>(_image_width, 0));
 
@@ -335,8 +337,8 @@ void CAPE::planeSegmentsMapToLabels(std::string const& save_path) {
   int32_t cell_height = _config.getInt("patchSize");
 
   int32_t stacked_cell_id = 0;
-  for (auto row = 0; row < _grid_plane_seg_map.rows; ++row) {
-    for (auto col = 0; col < _grid_plane_seg_map.cols; ++col) {
+  for (auto row = 0; row < cell_map.rows; ++row) {
+    for (auto col = 0; col < cell_map.cols; ++col) {
       auto cell_row = stacked_cell_id / _nr_horizontal_cells;
       auto cell_col = stacked_cell_id % _nr_horizontal_cells;
       // Fill cell with label
@@ -344,7 +346,7 @@ void CAPE::planeSegmentsMapToLabels(std::string const& save_path) {
       auto label_col = cell_col * cell_width;
       for (auto i = label_row; i < label_row + cell_height; ++i) {
         for (auto j = label_col; j < label_col + cell_width; ++j) {
-          labels[i][j] = _grid_plane_seg_map[row][col];
+          labels[i][j] = cell_map[row][col];
         }
       }
       ++stacked_cell_id;
@@ -354,6 +356,20 @@ void CAPE::planeSegmentsMapToLabels(std::string const& save_path) {
   vectorToCSV(labels, save_path);
 }
 
+void CAPE::mergeSegmentsToLabels(std::string const& save_path,
+                                 std::vector<int32_t> const& merge_labels) {
+  cv::Mat_<int32_t> grid_plane_seg_map_merged;
+  _grid_plane_seg_map.copyTo(grid_plane_seg_map_merged);
+
+  for (int32_t i = 0; i < merge_labels.size(); ++i) {
+    if (merge_labels[i] != i) {
+      grid_plane_seg_map_merged.setTo(merge_labels[i],
+                                      grid_plane_seg_map_merged == i);
+    }
+  }
+
+  planeSegmentsMapToLabels(save_path, grid_plane_seg_map_merged);
+}
 #endif
 
 }  // namespace cape
