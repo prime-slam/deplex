@@ -38,12 +38,22 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   std::clog << "[DebugInfo] Plane segments found: " << plane_segments.size()
             << '\n';
 #endif
-    // 5. Merge planes
-    std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
-    // 6. Refinement (optional)
-    if (_config.getBool("doRefinement")){
-      refinePlanes();
-    }
+  // 5. Merge planes
+  std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
+#ifdef DEBUG_CAPE
+  std::vector<int32_t> sorted_labels(merge_labels);
+  std::sort(sorted_labels.begin(), sorted_labels.end());
+
+  std::clog << "[DebugInfo] Planes number after merge: "
+            << std::distance(
+                   sorted_labels.begin(),
+                   std::unique(sorted_labels.begin(), sorted_labels.end()))
+            << '\n';
+#endif
+  // 6. Refinement (optional)
+  if (_config.getBool("doRefinement")) {
+    refinePlanes();
+  }
 }
 
 std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
@@ -187,11 +197,12 @@ std::vector<int32_t> CAPE::mergePlanes(
     bool plane_expanded = false;
     for (size_t col_id = planes_association_mx[row_id]._Find_next(row_id);
          col_id != planes_association_mx[row_id].size();
-         col_id = planes_association_mx[row_id]._Find_next(row_id)) {
+         col_id = planes_association_mx[row_id]._Find_next(col_id)) {
       double cos_angle = plane_segments[plane_id]->getNormal().dot(
           plane_segments[col_id]->getNormal());
       double distance = pow(plane_segments[plane_id]->getNormal().dot(
-                                plane_segments[col_id]->getMean()),
+                                plane_segments[col_id]->getMean()) +
+                                plane_segments[plane_id]->getD(),
                             2);
       if (cos_angle > _config.getFloat("minCosAngleForMerge") &&
           distance < _config.getFloat("maxMergeDist")) {
