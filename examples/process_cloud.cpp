@@ -157,11 +157,12 @@ int main() {
   std::filesystem::path image_path = data_dir / "tum/1341848230.910894.png";
   std::filesystem::path intrinsics_path =
       data_dir / "configs/TUM_fr3_long_val.xml";
-  cape::config::Config default_cfg;
+  std::filesystem::path config_path = data_dir / "configs/TUM_fr3_long_val.ini";
+  cape::config::Config config = cape::config::Config(config_path);
 
-  auto algorithm = cape::CAPE(IMAGE_HEIGHT, IMAGE_WIDTH, default_cfg);
+  auto algorithm = cape::CAPE(IMAGE_HEIGHT, IMAGE_WIDTH, config);
   Eigen::MatrixXf organized_pcd =
-      readImage(image_path, intrinsics_path, default_cfg.getInt("patchSize"));
+      readImage(image_path, intrinsics_path, config.getInt("patchSize"));
 
   algorithm.process(organized_pcd);
 
