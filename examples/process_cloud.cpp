@@ -154,10 +154,14 @@ Eigen::MatrixXf readImage(std::string const& image_path,
 int main() {
   std::filesystem::path data_dir =
       std::filesystem::current_path().parent_path().parent_path() / "data";
-  std::filesystem::path image_path = data_dir / "tum/1341848230.910894.png";
-  std::filesystem::path intrinsics_path =
-      data_dir / "configs/TUM_fr3_long_val.xml";
-  std::filesystem::path config_path = data_dir / "configs/TUM_fr3_long_val.ini";
+//  std::filesystem::path image_path = data_dir / "tum/1341848230.910894.png";
+//  std::filesystem::path intrinsics_path =
+//      data_dir / "configs/TUM_fr3_long_val.xml";
+//  std::filesystem::path config_path = data_dir / "configs/TUM_fr3_long_val.ini";
+    std::filesystem::path image_path = data_dir / "icl_nuim/0.png";
+    std::filesystem::path intrinsics_path =
+        data_dir / "configs/ICL_living_room.xml";
+    std::filesystem::path config_path = data_dir / "configs/ICL_living_room.ini";
   cape::config::Config config = cape::config::Config(config_path);
 
   auto algorithm = cape::CAPE(IMAGE_HEIGHT, IMAGE_WIDTH, config);
