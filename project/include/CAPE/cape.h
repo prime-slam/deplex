@@ -34,6 +34,7 @@ class CAPE {
   int32_t _image_width;
   std::vector<std::shared_ptr<PlaneSeg>> _cell_grid;
   cv::Mat_<int32_t> _grid_plane_seg_map;
+  std::vector<label_t> _seg_map_stacked;
   std::bitset<BITSET_SIZE> findPlanarCells(Eigen::MatrixXf const& pcd_array);
   Histogram initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags);
   std::vector<float> computeCellDistTols(
@@ -43,8 +44,15 @@ class CAPE {
       Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags,
       std::vector<float> const& cell_dist_tols);
   std::vector<int32_t> mergePlanes(
-      std::vector<std::shared_ptr<PlaneSeg>> & plane_segments);
-  void refinePlanes();
+      std::vector<std::shared_ptr<PlaneSeg>>& plane_segments);
+  void refinePlanes(
+      std::vector<std::shared_ptr<PlaneSeg>> const& plane_segments,
+      std::vector<int32_t> const& merge_labels,
+      Eigen::MatrixXf const& pcd_array);
+  void refineCells(std::shared_ptr<const PlaneSeg> const plane,
+                   label_t label,
+                   cv::Mat const& mask,
+                   Eigen::MatrixXf const& pcd_array);
   void growSeed(int32_t x, int32_t y, int32_t prev_index,
                 std::bitset<BITSET_SIZE> const& unassigned,
                 std::bitset<BITSET_SIZE>* activation_map,
