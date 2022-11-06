@@ -5,7 +5,8 @@ import os
 import open3d as o3d
 import numpy as np
 
-from readers.tum_reader import read_depth
+from readers.tum_reader import read_depth as tum_reader
+from readers.icl_reader import read_depth as icl_reader
 
 
 def apply_labels(pcd_path: str, labels_path: str):
@@ -32,8 +33,13 @@ def apply_labels(pcd_path: str, labels_path: str):
 
 
 def main():
-    image_path, labels_path = sys.argv[1:]
-    pcd = read_depth(image_path)
+    image_path, labels_path, reader = sys.argv[1:]
+    if reader == "tum":
+        pcd = tum_reader(image_path)
+    elif reader == "icl":
+        pcd = icl_reader(image_path)
+    else:
+        raise KeyError("Specify tum|icl dataset reader")
     tmp_pcd_path = image_path + "__GEN_PCD.pcd"
     o3d.io.write_point_cloud(tmp_pcd_path, pcd)
 
