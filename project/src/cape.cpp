@@ -16,7 +16,8 @@ CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
       _image_height(image_height),
       _image_width(image_width),
       _cell_grid(_nr_total_cells, nullptr),
-      _grid_plane_seg_map(_nr_vertical_cells, _nr_horizontal_cells, 0) {}
+      _grid_plane_seg_map(_nr_vertical_cells, _nr_horizontal_cells, 0),
+      _seg_map_stacked(image_height * image_width, 0) {}
 
 void CAPE::process(Eigen::MatrixXf const& pcd_array) {
   // 1. Planar cell fitting
@@ -53,7 +54,7 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
 #endif
   // 6. Refinement (optional)
   if (_config.getBool("doRefinement")) {
-    refinePlanes();
+    refinePlanes(plane_segments, merge_labels, pcd_array);
   }
 }
 
@@ -220,8 +221,84 @@ std::vector<int32_t> CAPE::mergePlanes(
   return plane_merge_labels;
 }
 
-void CAPE::refinePlanes() {
-  std::cerr << "Refinement not yet implemented\n";
+void CAPE::refinePlanes(
+    std::vector<std::shared_ptr<PlaneSeg>> const& plane_segments,
+    std::vector<int32_t> const& merge_labels,
+    Eigen::MatrixXf const& pcd_array) {
+  assert(plane_segments.size() == merge_labels.size());
+  std::vector<std::shared_ptr<PlaneSeg>> plane_segments_final;
+  cv::Mat mask(_nr_vertical_cells, _nr_horizontal_cells, CV_8U);
+  cv::Mat mask_eroded(_nr_vertical_cells, _nr_horizontal_cells, CV_8U);
+  //  cv::Mat mask_square_eroded;
+  cv::Mat mask_dilated(_nr_vertical_cells, _nr_horizontal_cells, CV_8U);
+  cv::Mat mask_square_kernel = cv::Mat::ones(3, 3, CV_8U);
+  cv::Mat mask_cross_kernel = cv::Mat::ones(3, 3, CV_8U);
+  mask_cross_kernel.at<uchar>(0, 0) = 0;
+  mask_cross_kernel.at<uchar>(2, 2) = 0;
+  mask_cross_kernel.at<uchar>(0, 2) = 0;
+  mask_cross_kernel.at<uchar>(2, 0) = 0;
+  for (int32_t i = 0; i < plane_segments.size(); ++i) {
+    mask = cv::Scalar(0);
+    if (i != merge_labels[i]) continue;
+    for (int32_t j = i; j < plane_segments.size(); ++j) {
+      if (merge_labels[j] == merge_labels[i]) {
+        // TODO: Check ... = j
+        mask.setTo(1, _grid_plane_seg_map == j + 1);
+      }
+    }
+    cv::erode(mask, mask_eroded, mask_cross_kernel);
+    double min, max;
+    cv::minMaxLoc(mask_eroded, &min, &max);
+
+    // Ignore plane if completely eroded
+    if (max == 0) {
+      continue;
+    }
+    plane_segments_final.push_back(plane_segments[i]);
+
+    cv::dilate(mask, mask_dilated, mask_square_kernel);
+    cv::Mat mask_diff = mask_dilated - mask_eroded;
+
+    refineCells(plane_segments[i], plane_segments_final.size(), mask,
+                pcd_array);
+  }
+}
+
+void CAPE::refineCells(const std::shared_ptr<const PlaneSeg> plane,
+                       label_t label, cv::Mat const& mask,
+                       Eigen::MatrixXf const& pcd_array) {
+  int32_t stacked_cell_id = 0;
+  auto refinement_coeff = _config.getFloat("refinementMultiplierCoeff");
+  std::vector<float> distances_stacked(_image_width * _image_height, MAXFLOAT);
+  for (int32_t row_id = 0; row_id < _nr_vertical_cells; ++row_id) {
+    auto row_ptr = mask.ptr<uchar>(row_id);
+    for (int32_t col_id = 0; col_id < _nr_horizontal_cells; ++col_id) {
+      if (!row_ptr[col_id]) {
+        ++stacked_cell_id;
+        continue;
+      }
+      int32_t offset = stacked_cell_id * _nr_pts_per_cell;
+      int32_t next_offset = offset + _nr_pts_per_cell;
+      auto max_dist = refinement_coeff * plane->getMSE();
+      Eigen::ArrayXf distances_cell_stacked =
+          pcd_array.block(offset, 0, _nr_pts_per_cell, 1).array() *
+              plane->getNormal()[0] +
+          pcd_array.block(offset, 1, _nr_pts_per_cell, 1).array() *
+              plane->getNormal()[1] +
+          pcd_array.block(offset, 2, _nr_pts_per_cell, 1).array() *
+              plane->getNormal()[2] +
+          plane->getD();
+
+      for (int pt = offset, j = 0; pt < next_offset; ++j, ++pt) {
+        auto dist = powf(distances_cell_stacked(j), 2);
+        if (dist < max_dist && dist < distances_stacked[pt]) {
+          distances_stacked[pt] = dist;
+          _seg_map_stacked[pt] = label;
+        }
+      }
+      ++stacked_cell_id;
+    }
+  }
 }
 
 void CAPE::growSeed(int32_t x, int32_t y, int32_t prev_index,

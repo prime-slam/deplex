@@ -43,6 +43,7 @@ const std::map<std::string, std::string> DEFAULT_PARAMETERS{
     {"minRegionGrowingCellsActivated", "4"},
     {"minRegionPlanarityScore", "50"},
     {"doRefinement", "true"},
+    {"refinementMultiplierCoeff", "15"},
     // Parameters used in plane validation
     {"depthSigmaCoeff", "1.425e-6"},
     {"depthSigmaMargin", "10"},
