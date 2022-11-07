@@ -17,9 +17,11 @@ CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
       _image_width(image_width),
       _cell_grid(_nr_total_cells, nullptr),
       _grid_plane_seg_map(_nr_vertical_cells, _nr_horizontal_cells, 0),
+      _grid_plane_seg_map_eroded(_nr_vertical_cells, _nr_horizontal_cells,
+                                 uchar(0)),
       _seg_map_stacked(image_height * image_width, 0) {}
 
-void CAPE::process(Eigen::MatrixXf const& pcd_array) {
+cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
   // 1. Planar cell fitting
   std::bitset<BITSET_SIZE> planar_flags = findPlanarCells(pcd_array);
 #ifdef DEBUG_CAPE
@@ -53,9 +55,15 @@ void CAPE::process(Eigen::MatrixXf const& pcd_array) {
             << '\n';
 #endif
   // 6. Refinement (optional)
+  cv::Mat_ labels(_image_height, _image_width, 0);
   if (_config.getBool("doRefinement")) {
     refinePlanes(plane_segments, merge_labels, pcd_array);
+    labels = toLabels();
   }
+#ifdef DEBUG_CAPE
+  std::ofstream of("dbg_4_labels.csv");
+  of << cv::format(labels, cv::Formatter::FMT_CSV);
+#endif
 }
 
 std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
@@ -258,10 +266,46 @@ void CAPE::refinePlanes(
 
     cv::dilate(mask, mask_dilated, mask_square_kernel);
     cv::Mat mask_diff = mask_dilated - mask_eroded;
-
-    refineCells(plane_segments[i], plane_segments_final.size(), mask,
+    _grid_plane_seg_map_eroded.setTo(plane_segments_final.size(),
+                                     mask_eroded > 0);
+    refineCells(plane_segments[i], plane_segments_final.size(), mask_diff,
                 pcd_array);
   }
+}
+
+cv::Mat CAPE::toLabels() {
+  cv::Mat seg_out(_image_height, _image_width, CV_8U);
+  seg_out = cv::Scalar(0);
+  int32_t cell_width = _config.getInt("patchSize");
+  int32_t cell_height = _config.getInt("patchSize");
+  for (int cell_r = 0; cell_r < _nr_vertical_cells; cell_r++) {
+    auto grid_plane_eroded_row_ptr =
+        _grid_plane_seg_map_eroded.ptr<label_t>(cell_r);
+    int r_offset = cell_r * cell_height;
+    int r_limit = r_offset + cell_height;
+    for (int cell_c = 0; cell_c < _nr_horizontal_cells; cell_c++) {
+      int c_offset = cell_c * cell_width;
+      int c_limit = c_offset + cell_width;
+      if (grid_plane_eroded_row_ptr[cell_c] > 0) {
+        seg_out(cv::Rect(c_offset, r_offset, cell_width, cell_height))
+            .setTo(grid_plane_eroded_row_ptr[cell_c]);
+      } else {
+        // Set cell pixels one by one
+        auto idx = _nr_pts_per_cell * cell_r * _nr_horizontal_cells +
+                   _nr_pts_per_cell * cell_c;
+        for (int r = r_offset; r < r_limit; r++) {
+          auto row_ptr = seg_out.ptr<uchar>(r);
+          for (int c = c_offset; c < c_limit; c++) {
+            if (_seg_map_stacked[idx] > 0) {
+              row_ptr[c] = _seg_map_stacked[idx];
+            }
+            idx++;
+          }
+        }
+      }
+    }
+  }
+  return seg_out;
 }
 
 void CAPE::refineCells(const std::shared_ptr<const PlaneSeg> plane,

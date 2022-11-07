@@ -22,7 +22,7 @@ typedef uchar label_t;
 class CAPE {
  public:
   CAPE(int32_t image_height, int32_t image_width, config::Config config);
-  void process(Eigen::MatrixXf const& pcd_array);
+  cv::Mat process(Eigen::MatrixXf const& pcd_array);
 
  private:
   config::Config _config;
@@ -34,6 +34,7 @@ class CAPE {
   int32_t _image_width;
   std::vector<std::shared_ptr<PlaneSeg>> _cell_grid;
   cv::Mat_<int32_t> _grid_plane_seg_map;
+  cv::Mat_<label_t> _grid_plane_seg_map_eroded;
   std::vector<label_t> _seg_map_stacked;
   std::bitset<BITSET_SIZE> findPlanarCells(Eigen::MatrixXf const& pcd_array);
   Histogram initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags);
@@ -49,6 +50,7 @@ class CAPE {
       std::vector<std::shared_ptr<PlaneSeg>> const& plane_segments,
       std::vector<int32_t> const& merge_labels,
       Eigen::MatrixXf const& pcd_array);
+  cv::Mat toLabels();
   void refineCells(std::shared_ptr<const PlaneSeg> const plane,
                    label_t label,
                    cv::Mat const& mask,
