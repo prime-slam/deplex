@@ -51,6 +51,8 @@ class CAPE {
       std::vector<int32_t> const& merge_labels,
       Eigen::MatrixXf const& pcd_array);
   cv::Mat toLabels();
+  cv::Mat coarseToLabels(std::vector<int32_t> const& labels);
+  void cleanArtifacts();
   void refineCells(std::shared_ptr<const PlaneSeg> const plane,
                    label_t label,
                    cv::Mat const& mask,

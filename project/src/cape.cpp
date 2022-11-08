@@ -59,11 +59,16 @@ cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
   if (_config.getBool("doRefinement")) {
     refinePlanes(plane_segments, merge_labels, pcd_array);
     labels = toLabels();
+  } else {
+    labels = coarseToLabels(merge_labels);
   }
 #ifdef DEBUG_CAPE
   std::ofstream of("dbg_4_labels.csv");
   of << cv::format(labels, cv::Formatter::FMT_CSV);
 #endif
+  // 7. Cleanup
+  cleanArtifacts();
+  return labels;
 }
 
 std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
@@ -306,6 +311,27 @@ cv::Mat CAPE::toLabels() {
     }
   }
   return seg_out;
+}
+
+cv::Mat CAPE::coarseToLabels(std::vector<int32_t> const& labels) {
+  cv::Mat_<int32_t> grid_plane_seg_map_merged;
+  _grid_plane_seg_map.copyTo(grid_plane_seg_map_merged);
+
+  for (int32_t i = 0; i < labels.size(); ++i) {
+    if (labels[i] != i) {
+      grid_plane_seg_map_merged.setTo(labels[i],
+                                      grid_plane_seg_map_merged == i);
+    }
+  }
+
+  return grid_plane_seg_map_merged;
+}
+
+void CAPE::cleanArtifacts() {
+  _cell_grid.resize(_nr_total_cells, nullptr);
+  _grid_plane_seg_map = 0;
+  _grid_plane_seg_map_eroded = 0;
+  _seg_map_stacked.resize(_image_height * _image_width, 0);
 }
 
 void CAPE::refineCells(const std::shared_ptr<const PlaneSeg> plane,
