@@ -10,6 +10,7 @@ set(TARGET_SOURCES
         include/CAPE/histogram.hpp
         include/CAPE/planeseg.hpp
         include/CAPE/config.hpp
+        include/CAPE/image_reader.hpp
         src/cape.cpp)
 
 #####################################

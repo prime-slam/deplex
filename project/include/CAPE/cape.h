@@ -13,8 +13,6 @@
 #define BITSET_SIZE 65536  // 2^16
 #endif
 
-#define DEBUG_CAPE
-
 namespace cape {
 
 typedef uchar label_t;
@@ -36,6 +34,7 @@ class CAPE {
   cv::Mat_<int32_t> _grid_plane_seg_map;
   cv::Mat_<label_t> _grid_plane_seg_map_eroded;
   std::vector<label_t> _seg_map_stacked;
+  void organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out);
   std::bitset<BITSET_SIZE> findPlanarCells(Eigen::MatrixXf const& pcd_array);
   Histogram initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags);
   std::vector<float> computeCellDistTols(
