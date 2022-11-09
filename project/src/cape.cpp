@@ -22,8 +22,11 @@ CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
       _seg_map_stacked(image_height * image_width, 0) {}
 
 cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
+  // 0. Stack array by cell
+  Eigen::MatrixXf organized_array(pcd_array.rows(), pcd_array.cols());
+  organizeByCell(pcd_array, &organized_array);
   // 1. Planar cell fitting
-  std::bitset<BITSET_SIZE> planar_flags = findPlanarCells(pcd_array);
+  std::bitset<BITSET_SIZE> planar_flags = findPlanarCells(organized_array);
 #ifdef DEBUG_CAPE
   planarCellsToLabels(planar_flags, "dbg_1_planar_cells.csv");
   std::clog << "[DebugInfo] Planar cell found: " << planar_flags.count()
@@ -33,7 +36,7 @@ cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
   Histogram hist = initializeHistogram(planar_flags);
   // 3. Compute cell dist tols
   std::vector<float> cell_dist_tols =
-      computeCellDistTols(pcd_array, planar_flags);
+      computeCellDistTols(organized_array, planar_flags);
   // 4. Region growing
   auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
 #ifdef DEBUG_CAPE
@@ -57,7 +60,7 @@ cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
   // 6. Refinement (optional)
   cv::Mat_ labels(_image_height, _image_width, 0);
   if (_config.getBool("doRefinement")) {
-    refinePlanes(plane_segments, merge_labels, pcd_array);
+    refinePlanes(plane_segments, merge_labels, organized_array);
     labels = toLabels();
   } else {
     labels = coarseToLabels(merge_labels);
@@ -69,6 +72,31 @@ cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
   // 7. Cleanup
   cleanArtifacts();
   return labels;
+}
+
+void CAPE::organizeByCell(Eigen::MatrixXf const& pcd_array,
+                          Eigen::MatrixXf* out) {
+  int32_t patch_size = _config.getInt("patchSize");
+  int32_t mxn = _image_width * _image_height;
+  int32_t mxn2 = 2 * mxn;
+
+  int stacked_id = 0;
+  for (int r = 0; r < _image_height; r++) {
+    int cell_r = r / patch_size;
+    int local_r = r % patch_size;
+    for (int c = 0; c < _image_width; c++) {
+      int cell_c = c / patch_size;
+      int local_c = c % patch_size;
+      auto shift =
+          (cell_r * _nr_horizontal_cells + cell_c) * patch_size * patch_size +
+          local_r * patch_size + local_c;
+
+      *(out->data() + shift) = *(pcd_array.data() + stacked_id);
+      *(out->data() + mxn + shift) = *(pcd_array.data() + mxn + stacked_id);
+      *(out->data() + mxn2 + shift) = *(pcd_array.data() + mxn2 + stacked_id);
+      stacked_id++;
+    }
+  }
 }
 
 std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
