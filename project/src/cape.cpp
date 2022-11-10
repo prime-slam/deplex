@@ -7,6 +7,25 @@
 #endif
 
 namespace cape {
+
+const config::Config CAPE::__default_config{
+    {// General parameters
+     {"patchSize", "12"},
+     {"histogramBinsPerCoord", "20"},
+     {"minCosAngleForMerge", "0.93"},
+     {"maxMergeDist", "500"},
+     {"minRegionGrowingCandidateSize", "5"},
+     {"minRegionGrowingCellsActivated", "4"},
+     {"minRegionPlanarityScore", "50"},
+     {"doRefinement", "true"},
+     {"refinementMultiplierCoeff", "15"},
+     // Parameters used in plane validation
+     {"depthSigmaCoeff", "1.425e-6"},
+     {"depthSigmaMargin", "10"},
+     {"minPtsPerCell", "3"},
+     {"depthDiscontinuityThreshold", "160"},
+     {"maxNumberDepthDiscontinuity", "1"}}};
+
 CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
     : _config(config),
       _nr_horizontal_cells(image_width / config.getInt("patchSize")),

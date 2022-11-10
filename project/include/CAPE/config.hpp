@@ -33,27 +33,10 @@ std::map<std::string, std::string> iniLoad(std::string iniFileName) {
 }
 }  // namespace ini_read
 // Default parameters for 'TUM_fr3_long_office_validation'
-const std::map<std::string, std::string> DEFAULT_PARAMETERS{
-    // General parameters
-    {"patchSize", "12"},
-    {"histogramBinsPerCoord", "20"},
-    {"minCosAngleForMerge", "0.93"},
-    {"maxMergeDist", "500"},
-    {"minRegionGrowingCandidateSize", "5"},
-    {"minRegionGrowingCellsActivated", "4"},
-    {"minRegionPlanarityScore", "50"},
-    {"doRefinement", "true"},
-    {"refinementMultiplierCoeff", "15"},
-    // Parameters used in plane validation
-    {"depthSigmaCoeff", "1.425e-6"},
-    {"depthSigmaMargin", "10"},
-    {"minPtsPerCell", "3"},
-    {"depthDiscontinuityThreshold", "160"},
-    {"maxNumberDepthDiscontinuity", "1"}};
 
 class Config {
  public:
-  Config();
+  Config(std::map<std::string, std::string> const& param_map);
   Config(std::string const& config_path);
   inline int32_t getInt(std::string const& param_name) const;
   inline float getFloat(std::string const& param_name) const;
@@ -64,18 +47,11 @@ class Config {
   std::map<std::string, std::string> _param_map;
 };
 
-Config::Config() : _param_map(DEFAULT_PARAMETERS) {}
+Config::Config(std::map<std::string, std::string> const& param_map)
+    : _param_map(param_map) {}
 
 Config::Config(std::string const& config_path)
-    : _param_map(ini_read::iniLoad(config_path)) {
-  for (auto const& [key, value] : DEFAULT_PARAMETERS) {
-    if (_param_map.find(key) == _param_map.end()) {
-      std::cerr << "Warning! Couldn't find parameter '" << key
-                << "', using default value = " << value << '\n';
-      _param_map[key] = value;
-    }
-  }
-}
+    : _param_map(ini_read::iniLoad(config_path)) {}
 
 std::string Config::findValue(std::string const& name) const {
   auto value_ptr = _param_map.find(name);

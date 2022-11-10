@@ -19,10 +19,12 @@ typedef uchar label_t;
 
 class CAPE {
  public:
-  CAPE(int32_t image_height, int32_t image_width, config::Config config);
+  CAPE(int32_t image_height, int32_t image_width,
+       config::Config config = __default_config);
   cv::Mat process(Eigen::MatrixXf const& pcd_array);
 
  private:
+  const static config::Config __default_config;
   config::Config _config;
   int32_t _nr_horizontal_cells;
   int32_t _nr_vertical_cells;
