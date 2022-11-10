@@ -1,17 +1,17 @@
 #####################################
 # Define Target Information
 #####################################
-set(TARGET_NAME ${PROJECT_NAME})
+set(TARGET_NAME deplex)
 set(TARGET_INCLUDE_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 
 set(TARGET_SOURCES
-        include/CAPE/cape.h
-        include/CAPE/histogram.hpp
-        include/CAPE/planeseg.hpp
-        include/CAPE/config.hpp
-        include/CAPE/image_reader.hpp
-        src/cape.cpp)
+        include/deplex/plane_extraction.h
+        include/deplex/histogram.hpp
+        include/deplex/planeseg.hpp
+        include/deplex/config.hpp
+        include/deplex/image_reader.hpp
+        src/plane_extraction.cpp)
 
 #####################################
 # Required packages

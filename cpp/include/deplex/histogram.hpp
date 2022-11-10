@@ -9,7 +9,7 @@
 #define BITSET_SIZE 65536  // 2^16
 #endif
 
-namespace cape {
+namespace deplex {
 class Histogram {
  public:
   Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXd const& P,
@@ -77,4 +77,4 @@ void Histogram::removePoint(int32_t point_id) {
   --_hist[_bins[point_id]];
   _bins[point_id] = -1;
 }
-}  // namespace cape
+}  // namespace deplex

@@ -1,12 +1,12 @@
-#include "CAPE/cape.h"
 #include <numeric>
+#include "deplex/plane_extraction.h"
 
 #ifdef DEBUG_CAPE
 #include <iostream>
 #include <fstream>
 #endif
 
-namespace cape {
+namespace deplex {
 
 const config::Config CAPE::__default_config{
     {// General parameters
@@ -566,4 +566,4 @@ void CAPE::mergeSegmentsToLabels(std::string const& save_path,
 }
 #endif
 
-}  // namespace cape
+}  // namespace deplex

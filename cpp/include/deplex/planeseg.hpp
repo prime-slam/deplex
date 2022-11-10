@@ -4,7 +4,7 @@
 
 #include <Eigen/Dense>
 
-namespace cape {
+namespace deplex {
 class PlaneSeg {
  public:
   PlaneSeg(int32_t cell_id, int32_t cell_width, int32_t cell_height,
@@ -197,4 +197,4 @@ void PlaneSeg::initStats() {
 
 void PlaneSeg::calculateStats() { _stats.makePCA(); }
 
-}  // namespace cape
+}  // namespace deplex

@@ -6,7 +6,7 @@
 #include <map>
 #include <string>
 
-namespace cape::config {
+namespace deplex::config {
 namespace ini_read {
 std::map<std::string, std::string> iniLoad(std::string iniFileName) {
   std::map<std::string, std::string> parameters;
@@ -80,4 +80,4 @@ bool Config::getBool(std::string const& name) const {
       "[1, true, True] or [0, false, False]");
 }
 
-}  // namespace cape::config
+}  // namespace deplex::config

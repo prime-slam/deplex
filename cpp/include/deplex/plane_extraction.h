@@ -13,7 +13,7 @@
 #define BITSET_SIZE 65536  // 2^16
 #endif
 
-namespace cape {
+namespace deplex {
 
 typedef uchar label_t;
 
@@ -75,4 +75,4 @@ class CAPE {
                              std::vector<int32_t> const& merge_labels);
 #endif
 };
-}  // namespace cape
+}  // namespace deplex

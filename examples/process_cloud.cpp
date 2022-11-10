@@ -1,5 +1,5 @@
-#include <CAPE/cape.h>
-#include <CAPE/image_reader.hpp>
+#include <deplex/plane_extraction.h>
+#include <deplex/image_reader.hpp>
 
 #include <filesystem>
 
@@ -13,11 +13,11 @@ int main() {
 
   constexpr int IMAGE_HEIGHT = 480, IMAGE_WIDTH = 640;
 
-  cape::config::Config config = cape::config::Config(config_path);
+  deplex::config::Config config = deplex::config::Config(config_path);
 
-  auto algorithm = cape::CAPE(IMAGE_HEIGHT, IMAGE_WIDTH, config);
+  auto algorithm = deplex::CAPE(IMAGE_HEIGHT, IMAGE_WIDTH, config);
   Eigen::MatrixXf pcd_array =
-      cape::reader::readImage(image_path, intrinsics_path);
+      deplex::reader::readImage(image_path, intrinsics_path);
 
   auto labels = algorithm.process(pcd_array);
 
