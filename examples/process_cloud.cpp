@@ -15,7 +15,7 @@ int main() {
 
   deplex::config::Config config = deplex::config::Config(config_path);
 
-  auto algorithm = deplex::CAPE(IMAGE_HEIGHT, IMAGE_WIDTH, config);
+  auto algorithm = deplex::PlaneExtractor(IMAGE_HEIGHT, IMAGE_WIDTH, config);
   Eigen::MatrixXf pcd_array =
       deplex::reader::readImage(image_path, intrinsics_path);
 
