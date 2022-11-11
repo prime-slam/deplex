@@ -1,14 +1,14 @@
 #include <numeric>
 #include "deplex/plane_extraction.h"
 
-#ifdef DEBUG_CAPE
+#ifdef DEBUG_DEPLEX
 #include <iostream>
 #include <fstream>
 #endif
 
 namespace deplex {
 
-const config::Config CAPE::__default_config{
+const config::Config PlaneExtractor::__default_config{
     {// General parameters
      {"patchSize", "12"},
      {"histogramBinsPerCoord", "20"},
@@ -26,7 +26,8 @@ const config::Config CAPE::__default_config{
      {"depthDiscontinuityThreshold", "160"},
      {"maxNumberDepthDiscontinuity", "1"}}};
 
-CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
+PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width,
+                               config::Config config)
     : _config(config),
       _nr_horizontal_cells(image_width / config.getInt("patchSize")),
       _nr_vertical_cells(image_height / config.getInt("patchSize")),
@@ -40,13 +41,13 @@ CAPE::CAPE(int32_t image_height, int32_t image_width, config::Config config)
                                  uchar(0)),
       _seg_map_stacked(image_height * image_width, 0) {}
 
-cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
+cv::Mat PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
   // 0. Stack array by cell
   Eigen::MatrixXf organized_array(pcd_array.rows(), pcd_array.cols());
   organizeByCell(pcd_array, &organized_array);
   // 1. Planar cell fitting
   std::bitset<BITSET_SIZE> planar_flags = findPlanarCells(organized_array);
-#ifdef DEBUG_CAPE
+#ifdef DEBUG_DEPLEX
   planarCellsToLabels(planar_flags, "dbg_1_planar_cells.csv");
   std::clog << "[DebugInfo] Planar cell found: " << planar_flags.count()
             << '\n';
@@ -58,14 +59,14 @@ cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
       computeCellDistTols(organized_array, planar_flags);
   // 4. Region growing
   auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
-#ifdef DEBUG_CAPE
+#ifdef DEBUG_DEPLEX
   planeSegmentsMapToLabels("dbg_2_plane_segments_raw.csv", _grid_plane_seg_map);
   std::clog << "[DebugInfo] Plane segments found: " << plane_segments.size()
             << '\n';
 #endif
   // 5. Merge planes
   std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
-#ifdef DEBUG_CAPE
+#ifdef DEBUG_DEPLEX
   mergeSegmentsToLabels("dbg_3_plane_segments_merged.csv", merge_labels);
   std::vector<int32_t> sorted_labels(merge_labels);
   std::sort(sorted_labels.begin(), sorted_labels.end());
@@ -84,7 +85,7 @@ cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
   } else {
     labels = coarseToLabels(merge_labels);
   }
-#ifdef DEBUG_CAPE
+#ifdef DEBUG_DEPLEX
   std::ofstream of("dbg_4_labels.csv");
   of << cv::format(labels, cv::Formatter::FMT_CSV);
 #endif
@@ -93,8 +94,8 @@ cv::Mat CAPE::process(Eigen::MatrixXf const& pcd_array) {
   return labels;
 }
 
-void CAPE::organizeByCell(Eigen::MatrixXf const& pcd_array,
-                          Eigen::MatrixXf* out) {
+void PlaneExtractor::organizeByCell(Eigen::MatrixXf const& pcd_array,
+                                    Eigen::MatrixXf* out) {
   int32_t patch_size = _config.getInt("patchSize");
   int32_t mxn = _image_width * _image_height;
   int32_t mxn2 = 2 * mxn;
@@ -118,7 +119,7 @@ void CAPE::organizeByCell(Eigen::MatrixXf const& pcd_array,
   }
 }
 
-std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
+std::bitset<BITSET_SIZE> PlaneExtractor::findPlanarCells(
     Eigen::MatrixXf const& pcd_array) {
   std::bitset<BITSET_SIZE> planar_flags;
   int32_t cell_width = _config.getInt("patchSize");
@@ -135,7 +136,7 @@ std::bitset<BITSET_SIZE> CAPE::findPlanarCells(
   return planar_flags;
 }
 
-Histogram CAPE::initializeHistogram(
+Histogram PlaneExtractor::initializeHistogram(
     std::bitset<BITSET_SIZE> const& planar_flags) {
   Eigen::MatrixXd spherical_coord(_nr_total_cells, 2);
   for (size_t cell_id = planar_flags._Find_first();
@@ -152,7 +153,7 @@ Histogram CAPE::initializeHistogram(
   return Histogram{nr_bins_per_coord, spherical_coord, planar_flags};
 }
 
-std::vector<float> CAPE::computeCellDistTols(
+std::vector<float> PlaneExtractor::computeCellDistTols(
     Eigen::MatrixXf const& pcd_array,
     std::bitset<BITSET_SIZE> const& planar_flags) {
   std::vector<float> cell_dist_tols(_nr_total_cells, 0);
@@ -179,7 +180,7 @@ std::vector<float> CAPE::computeCellDistTols(
   return cell_dist_tols;
 }
 
-std::vector<std::shared_ptr<PlaneSeg>> CAPE::createPlaneSegments(
+std::vector<std::shared_ptr<PlaneSeg>> PlaneExtractor::createPlaneSegments(
     Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags,
     std::vector<float> const& cell_dist_tols) {
   std::vector<std::shared_ptr<PlaneSeg>> plane_segments;
@@ -245,7 +246,7 @@ std::vector<std::shared_ptr<PlaneSeg>> CAPE::createPlaneSegments(
   return plane_segments;
 }
 
-std::vector<int32_t> CAPE::mergePlanes(
+std::vector<int32_t> PlaneExtractor::mergePlanes(
     std::vector<std::shared_ptr<PlaneSeg>>& plane_segments) {
   size_t nr_planes = plane_segments.size();
   // Boolean matrix [nr_planes X nr_planes]
@@ -281,7 +282,7 @@ std::vector<int32_t> CAPE::mergePlanes(
   return plane_merge_labels;
 }
 
-void CAPE::refinePlanes(
+void PlaneExtractor::refinePlanes(
     std::vector<std::shared_ptr<PlaneSeg>> const& plane_segments,
     std::vector<int32_t> const& merge_labels,
     Eigen::MatrixXf const& pcd_array) {
@@ -325,7 +326,7 @@ void CAPE::refinePlanes(
   }
 }
 
-cv::Mat CAPE::toLabels() {
+cv::Mat PlaneExtractor::toLabels() {
   cv::Mat seg_out(_image_height, _image_width, CV_8U);
   seg_out = cv::Scalar(0);
   int32_t cell_width = _config.getInt("patchSize");
@@ -360,7 +361,7 @@ cv::Mat CAPE::toLabels() {
   return seg_out;
 }
 
-cv::Mat CAPE::coarseToLabels(std::vector<int32_t> const& labels) {
+cv::Mat PlaneExtractor::coarseToLabels(std::vector<int32_t> const& labels) {
   cv::Mat_<int32_t> grid_plane_seg_map_merged;
   _grid_plane_seg_map.copyTo(grid_plane_seg_map_merged);
 
@@ -374,16 +375,16 @@ cv::Mat CAPE::coarseToLabels(std::vector<int32_t> const& labels) {
   return grid_plane_seg_map_merged;
 }
 
-void CAPE::cleanArtifacts() {
+void PlaneExtractor::cleanArtifacts() {
   _cell_grid.resize(_nr_total_cells, nullptr);
   _grid_plane_seg_map = 0;
   _grid_plane_seg_map_eroded = 0;
   _seg_map_stacked.resize(_image_height * _image_width, 0);
 }
 
-void CAPE::refineCells(const std::shared_ptr<const PlaneSeg> plane,
-                       label_t label, cv::Mat const& mask,
-                       Eigen::MatrixXf const& pcd_array) {
+void PlaneExtractor::refineCells(const std::shared_ptr<const PlaneSeg> plane,
+                                 label_t label, cv::Mat const& mask,
+                                 Eigen::MatrixXf const& pcd_array) {
   int32_t stacked_cell_id = 0;
   auto refinement_coeff = _config.getFloat("refinementMultiplierCoeff");
   std::vector<float> distances_stacked(_image_width * _image_height, MAXFLOAT);
@@ -418,10 +419,10 @@ void CAPE::refineCells(const std::shared_ptr<const PlaneSeg> plane,
   }
 }
 
-void CAPE::growSeed(int32_t x, int32_t y, int32_t prev_index,
-                    std::bitset<BITSET_SIZE> const& unassigned,
-                    std::bitset<BITSET_SIZE>* activation_map,
-                    std::vector<float> const& cell_dist_tols) const {
+void PlaneExtractor::growSeed(int32_t x, int32_t y, int32_t prev_index,
+                              std::bitset<BITSET_SIZE> const& unassigned,
+                              std::bitset<BITSET_SIZE>* activation_map,
+                              std::vector<float> const& cell_dist_tols) const {
   int32_t index = x + _nr_horizontal_cells * y;
   if (index >= _nr_total_cells)
     throw std::out_of_range("growSeed: Index out of total cell number");
@@ -452,7 +453,7 @@ void CAPE::growSeed(int32_t x, int32_t y, int32_t prev_index,
     growSeed(x, y + 1, index, unassigned, activation_map, cell_dist_tols);
 }
 
-std::vector<std::bitset<BITSET_SIZE>> CAPE::getConnectedComponents(
+std::vector<std::bitset<BITSET_SIZE>> PlaneExtractor::getConnectedComponents(
     size_t nr_planes) const {
   std::vector<std::bitset<BITSET_SIZE>> planes_assoc_matrix(nr_planes);
 
@@ -480,14 +481,15 @@ std::vector<std::bitset<BITSET_SIZE>> CAPE::getConnectedComponents(
   return planes_assoc_matrix;
 }
 
-#ifdef DEBUG_CAPE
+#ifdef DEBUG_DEPLEX
 
-template<typename T>
-void vectorToCSV(std::vector<std::vector<T>> const& data, std::string const& out_path, char sep=','){
+template <typename T>
+void vectorToCSV(std::vector<std::vector<T>> const& data,
+                 std::string const& out_path, char sep = ',') {
   std::ofstream f_out(out_path);
-  for (const auto & row : data){
-    for (auto value = row.begin(); value != row.end(); ++value){
-      if (value != row.begin()){
+  for (const auto& row : data) {
+    for (auto value = row.begin(); value != row.end(); ++value) {
+      if (value != row.begin()) {
         f_out << sep;
       }
       f_out << *value;
@@ -496,8 +498,9 @@ void vectorToCSV(std::vector<std::vector<T>> const& data, std::string const& out
   }
 }
 
-void CAPE::planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
-                               std::string const& save_path) {
+void PlaneExtractor::planarCellsToLabels(
+    std::bitset<BITSET_SIZE> const& planar_flags,
+    std::string const& save_path) {
   std::vector<std::vector<int32_t>> labels(
       _image_height, std::vector<int32_t>(_image_width, 0));
 
@@ -522,8 +525,8 @@ void CAPE::planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
   vectorToCSV(labels, save_path);
 }
 
-void CAPE::planeSegmentsMapToLabels(std::string const& save_path,
-                                    cv::Mat_<int32_t> const& cell_map) {
+void PlaneExtractor::planeSegmentsMapToLabels(
+    std::string const& save_path, cv::Mat_<int32_t> const& cell_map) {
   std::vector<std::vector<int32_t>> labels(
       _image_height, std::vector<int32_t>(_image_width, 0));
 
@@ -550,8 +553,8 @@ void CAPE::planeSegmentsMapToLabels(std::string const& save_path,
   vectorToCSV(labels, save_path);
 }
 
-void CAPE::mergeSegmentsToLabels(std::string const& save_path,
-                                 std::vector<int32_t> const& merge_labels) {
+void PlaneExtractor::mergeSegmentsToLabels(
+    std::string const& save_path, std::vector<int32_t> const& merge_labels) {
   cv::Mat_<int32_t> grid_plane_seg_map_merged;
   _grid_plane_seg_map.copyTo(grid_plane_seg_map_merged);
 
