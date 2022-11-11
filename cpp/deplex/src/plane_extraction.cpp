@@ -10,7 +10,7 @@
 
 namespace deplex {
 
-const config::Config PlaneExtractor::__default_config{
+const config::Config PlaneExtractor::kDefaultConfig{
     {// General parameters
      {"patchSize", "12"},
      {"histogramBinsPerCoord", "20"},

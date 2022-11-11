@@ -20,11 +20,11 @@ typedef uchar label_t;
 class PlaneExtractor {
  public:
   PlaneExtractor(int32_t image_height, int32_t image_width,
-                 config::Config config = __default_config);
+                 config::Config config = kDefaultConfig);
   Eigen::VectorXi process(Eigen::MatrixXf const& pcd_array);
+  const static config::Config kDefaultConfig;
 
  private:
-  const static config::Config __default_config;
   config::Config _config;
   int32_t _nr_horizontal_cells;
   int32_t _nr_vertical_cells;
