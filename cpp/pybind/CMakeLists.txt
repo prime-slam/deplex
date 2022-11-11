@@ -1,4 +1,5 @@
 pybind11_add_module(pybind)
+add_subdirectory(plane_extraction)
 
 target_sources(pybind PRIVATE
     deplex_pybind.cpp
