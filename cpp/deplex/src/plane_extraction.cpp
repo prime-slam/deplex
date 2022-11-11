@@ -1,9 +1,11 @@
-#include <numeric>
 #include "deplex/plane_extraction.h"
 
+#include <numeric>
+#include <opencv2/core/eigen.hpp>
+
 #ifdef DEBUG_DEPLEX
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #endif
 
 namespace deplex {
@@ -41,7 +43,7 @@ PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width,
                                  uchar(0)),
       _seg_map_stacked(image_height * image_width, 0) {}
 
-cv::Mat PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
+Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
   // 0. Stack array by cell
   Eigen::MatrixXf organized_array(pcd_array.rows(), pcd_array.cols());
   organizeByCell(pcd_array, &organized_array);
@@ -91,7 +93,9 @@ cv::Mat PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
 #endif
   // 7. Cleanup
   cleanArtifacts();
-  return labels;
+  Eigen::MatrixXi eigen_labels;
+  cv::cv2eigen(labels, eigen_labels);
+  return eigen_labels.reshaped<Eigen::RowMajor>();
 }
 
 void PlaneExtractor::organizeByCell(Eigen::MatrixXf const& pcd_array,
