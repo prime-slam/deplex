@@ -21,7 +21,7 @@ class PlaneExtractor {
  public:
   PlaneExtractor(int32_t image_height, int32_t image_width,
                  config::Config config = __default_config);
-  cv::Mat process(Eigen::MatrixXf const& pcd_array);
+  Eigen::VectorXi process(Eigen::MatrixXf const& pcd_array);
 
  private:
   const static config::Config __default_config;
