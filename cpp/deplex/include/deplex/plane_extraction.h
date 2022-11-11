@@ -17,10 +17,10 @@ namespace deplex {
 
 typedef uchar label_t;
 
-class CAPE {
+class PlaneExtractor {
  public:
-  CAPE(int32_t image_height, int32_t image_width,
-       config::Config config = __default_config);
+  PlaneExtractor(int32_t image_height, int32_t image_width,
+                 config::Config config = __default_config);
   cv::Mat process(Eigen::MatrixXf const& pcd_array);
 
  private:
@@ -66,7 +66,7 @@ class CAPE {
   std::vector<std::bitset<BITSET_SIZE>> getConnectedComponents(
       size_t nr_planes) const;
 
-#ifdef DEBUG_CAPE
+#ifdef DEBUG_DEPLEX
   void planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
                            std::string const& save_path);
   void planeSegmentsMapToLabels(std::string const& save_path,
