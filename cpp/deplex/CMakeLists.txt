@@ -61,3 +61,6 @@ if (OpenCV_FOUND)
     target_link_libraries(${TARGET_NAME} PRIVATE ${OpenCV_LIBS})
     target_compile_definitions(${TARGET_NAME} PUBLIC HAVE_OPENCV)
 endif()
+
+set_target_properties(${TARGET_NAME} PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${DEPLEX_LIB_DIR}")
