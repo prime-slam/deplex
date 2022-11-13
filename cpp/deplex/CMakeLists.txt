@@ -36,3 +36,6 @@ target_include_directories(
 
 target_link_libraries(${TARGET_NAME} PUBLIC ${OpenCV_LIBS})
 target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
+
+set_target_properties(${TARGET_NAME} PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${DEPLEX_LIB_DIR}")
