@@ -1,5 +1,7 @@
 from setuptools import find_packages, setup
+from setuptools.command.install import install as _install
 import ctypes
+import logging
 
 
 cmdclass = dict()
@@ -21,21 +23,33 @@ try:
                 plat = f'manylinux_{GLIBC_VER[0]}_{GLIBC_VER[1]}{plat[5:]}'
             return python, abi, plat
 
+
     cmdclass['bdist_wheel'] = bdist_wheel
 
 except ImportError:
-    print("Warning: wheel package missing!")
+    logging.warn("Wheel package missing!")
 
+
+class install(_install):
+    def finalize_options(self):
+        _install.finalize_options(self)
+        self.install_libbase = self.install_platlib
+        self.install_lib = self.install_platlib
+
+
+cmdclass['install'] = install
 
 with open('requirements.txt') as f:
     install_requires = [line.strip() for line in f.readlines() if line]
 
-
+print("pcks", find_packages())
 setup_args = dict(
     name="deplex",
     version="0.0.1",
+    zip_safe=False,
     install_requires=install_requires,
-    packges=find_packages(),
+    packages=find_packages(),
+    include_package_data=True,
     cmdclass=cmdclass
 )
 

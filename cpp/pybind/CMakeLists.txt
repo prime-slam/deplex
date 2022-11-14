@@ -1,3 +1,7 @@
+if (NOT Python3_EXECUTABLE)
+    message(FATAL_ERROR "Python 3 not found in top level file")
+endif()
+
 pybind11_add_module(pybind)
 
 #####################################
@@ -6,6 +10,7 @@ pybind11_add_module(pybind)
 set(PYTHON_PACKAGE_SRC_DIR ${PROJECT_SOURCE_DIR}/python)
 set(PYTHON_PACKAGE_DST_DIR ${CMAKE_BINARY_DIR}/python_package)
 set(PYTHON_BINARY_DIR ${DEPLEX_LIB_DIR}/pybind)
+set(PYTHON_WHEEL_DST_DIR ${PYTHON_PACKAGE_DST_DIR}/pip-package)
 
 #####################################
 # Define sources of pybind target
@@ -39,3 +44,10 @@ add_custom_target(python-package
         -DPYTHON_PACKAGE_DST_DIR=${PYTHON_PACKAGE_DST_DIR}
         -DPYTHON_BINARY_DIR=${PYTHON_BINARY_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/make_python_package.cmake)
+
+add_custom_target(build-wheel
+        COMMAND ${Python3_EXECUTABLE} setup.py bdist_wheel --dist-dir pip-package
+        COMMAND echo "pip wheel created at ${PYTHON_WHEEL_DST_DIR}"
+        WORKING_DIRECTORY ${PYTHON_PACKAGE_DST_DIR}
+        DEPENDS python-package
+)
