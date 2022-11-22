@@ -73,9 +73,9 @@ bool Config::getBool(std::string const& name) const {
   else if (value == "0" || value == "false" || value == "False")
     return false;
 
-  throw std::runtime_error(
-      "Invalid value for parameter 'doRefinement'. Allowed values: "
-      "[1, true, True] or [0, false, False]");
+  throw std::runtime_error("Invalid value for boolean parameter: " + name +
+                           ". Allowed values: "
+                           "[1, true, True] or [0, false, False]");
 }
 
 }  // namespace deplex::config
