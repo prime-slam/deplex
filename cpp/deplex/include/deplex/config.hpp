@@ -7,13 +7,39 @@
 #include <string>
 
 namespace deplex::config {
-namespace ini_read {
-std::map<std::string, std::string> iniLoad(std::string iniFileName) {
+class Config {
+ public:
+  Config(std::map<std::string, std::string> const& param_map);
+  Config(std::string const& config_path);
+  inline int32_t getInt(std::string const& param_name) const;
+  inline float getFloat(std::string const& param_name) const;
+  inline bool getBool(std::string const& param_name) const;
+
+ private:
+  inline std::string findValue(std::string const& name) const;
+  std::map<std::string, std::string> iniLoad(std::string const& path) const;
+  std::map<std::string, std::string> _param_map;
+};
+
+Config::Config(std::map<std::string, std::string> const& param_map)
+    : _param_map(param_map) {}
+
+Config::Config(std::string const& config_path)
+    : _param_map(iniLoad(config_path)) {}
+
+std::string Config::findValue(std::string const& name) const {
+  auto value_ptr = _param_map.find(name);
+  if (value_ptr == _param_map.end())
+    throw std::runtime_error("Config invalid parameter name provided: " + name);
+  return value_ptr->second;
+}
+
+std::map<std::string, std::string> Config::iniLoad(
+    std::string const& path) const {
   std::map<std::string, std::string> parameters;
-  std::ifstream ini_file(iniFileName);
+  std::ifstream ini_file(path);
   if (!ini_file.is_open()) {
-    std::cerr << "Error! Couldn't open ini file: " << iniFileName << '\n';
-    return {};
+    throw std::runtime_error("Couldn't open ini file: " + path);
   }
   while (ini_file) {
     std::string line;
@@ -30,34 +56,6 @@ std::map<std::string, std::string> iniLoad(std::string iniFileName) {
   }
 
   return parameters;
-}
-}  // namespace ini_read
-// Default parameters for 'TUM_fr3_long_office_validation'
-
-class Config {
- public:
-  Config(std::map<std::string, std::string> const& param_map);
-  Config(std::string const& config_path);
-  inline int32_t getInt(std::string const& param_name) const;
-  inline float getFloat(std::string const& param_name) const;
-  inline bool getBool(std::string const& param_name) const;
-
- private:
-  inline std::string findValue(std::string const& name) const;
-  std::map<std::string, std::string> _param_map;
-};
-
-Config::Config(std::map<std::string, std::string> const& param_map)
-    : _param_map(param_map) {}
-
-Config::Config(std::string const& config_path)
-    : _param_map(ini_read::iniLoad(config_path)) {}
-
-std::string Config::findValue(std::string const& name) const {
-  auto value_ptr = _param_map.find(name);
-  if (value_ptr == _param_map.end())
-    throw std::runtime_error("Config invalid parameter name provided: " + name);
-  return value_ptr->second;
 }
 
 int32_t Config::getInt(std::string const& name) const {
