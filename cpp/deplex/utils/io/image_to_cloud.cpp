@@ -1,11 +1,10 @@
-#pragma once
+#include "image_to_cloud.h"
 
-#include <Eigen/Core>
 #include <fstream>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-namespace deplex::reader {
+namespace deplex::utils {
 Eigen::MatrixXf readImage(std::string const& image_path,
                           Eigen::Matrix3f const& K) {
   cv::Mat d_img = cv::imread(image_path, cv::IMREAD_ANYDEPTH);
@@ -50,4 +49,4 @@ Eigen::MatrixXf readImage(std::string const& image_path,
 
   return readImage(image_path, K);
 }
-}  // namespace deplex::reader
+}  // namespace deplex::utils

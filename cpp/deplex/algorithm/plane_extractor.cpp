@@ -1,4 +1,4 @@
-#include "deplex/plane_extraction.h"
+#include "algorithm/plane_extractor.h"
 
 #include <numeric>
 #include <opencv2/core/eigen.hpp>
@@ -131,7 +131,7 @@ std::bitset<BITSET_SIZE> PlaneExtractor::findPlanarCells(
   int32_t stacked_cell_id = 0;
   for (Eigen::Index cell_r = 0; cell_r < _nr_vertical_cells; ++cell_r) {
     for (Eigen::Index cell_h = 0; cell_h < _nr_horizontal_cells; ++cell_h) {
-      _cell_grid[stacked_cell_id] = std::make_shared<PlaneSeg>(
+      _cell_grid[stacked_cell_id] = std::make_shared<CellSegment>(
           stacked_cell_id, cell_width, cell_height, pcd_array, _config);
       planar_flags[stacked_cell_id] = _cell_grid[stacked_cell_id]->isPlanar();
       ++stacked_cell_id;
@@ -184,10 +184,10 @@ std::vector<float> PlaneExtractor::computeCellDistTols(
   return cell_dist_tols;
 }
 
-std::vector<std::shared_ptr<PlaneSeg>> PlaneExtractor::createPlaneSegments(
+std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
     Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags,
     std::vector<float> const& cell_dist_tols) {
-  std::vector<std::shared_ptr<PlaneSeg>> plane_segments;
+  std::vector<std::shared_ptr<CellSegment>> plane_segments;
   std::bitset<BITSET_SIZE> unassigned_mask(planar_flags);
   auto remaining_planar_cells = static_cast<int32_t>(planar_flags.count());
 
@@ -208,7 +208,7 @@ std::vector<std::shared_ptr<PlaneSeg>> PlaneExtractor::createPlaneSegments(
       }
     }
     // 3. Grow seed
-    std::shared_ptr<PlaneSeg> new_segment = _cell_grid[seed_id];
+    std::shared_ptr<CellSegment> new_segment = _cell_grid[seed_id];
     int32_t y = seed_id / _nr_horizontal_cells;
     int32_t x = seed_id % _nr_horizontal_cells;
     std::bitset<BITSET_SIZE> activation_map;
@@ -251,7 +251,7 @@ std::vector<std::shared_ptr<PlaneSeg>> PlaneExtractor::createPlaneSegments(
 }
 
 std::vector<int32_t> PlaneExtractor::mergePlanes(
-    std::vector<std::shared_ptr<PlaneSeg>>& plane_segments) {
+    std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
   size_t nr_planes = plane_segments.size();
   // Boolean matrix [nr_planes X nr_planes]
   auto planes_association_mx = getConnectedComponents(nr_planes);
@@ -287,11 +287,11 @@ std::vector<int32_t> PlaneExtractor::mergePlanes(
 }
 
 void PlaneExtractor::refinePlanes(
-    std::vector<std::shared_ptr<PlaneSeg>> const& plane_segments,
+    std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
     std::vector<int32_t> const& merge_labels,
     Eigen::MatrixXf const& pcd_array) {
   assert(plane_segments.size() == merge_labels.size());
-  std::vector<std::shared_ptr<PlaneSeg>> plane_segments_final;
+  std::vector<std::shared_ptr<CellSegment>> plane_segments_final;
   cv::Mat mask(_nr_vertical_cells, _nr_horizontal_cells, CV_8U);
   cv::Mat mask_eroded(_nr_vertical_cells, _nr_horizontal_cells, CV_8U);
   //  cv::Mat mask_square_eroded;
@@ -386,7 +386,7 @@ void PlaneExtractor::cleanArtifacts() {
   _seg_map_stacked.resize(_image_height * _image_width, 0);
 }
 
-void PlaneExtractor::refineCells(const std::shared_ptr<const PlaneSeg> plane,
+void PlaneExtractor::refineCells(const std::shared_ptr<const CellSegment> plane,
                                  label_t label, cv::Mat const& mask,
                                  Eigen::MatrixXf const& pcd_array) {
   int32_t stacked_cell_id = 0;

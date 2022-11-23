@@ -1,5 +1,4 @@
-#include <deplex/plane_extraction.h>
-#include <deplex/image_reader.hpp>
+#include "deplex.h"
 
 #include <filesystem>
 
@@ -17,7 +16,7 @@ int main() {
 
   auto algorithm = deplex::PlaneExtractor(IMAGE_HEIGHT, IMAGE_WIDTH, config);
   Eigen::MatrixXf pcd_array =
-      deplex::reader::readImage(image_path, intrinsics_path);
+      deplex::utils::readImage(image_path, intrinsics_path);
 
   auto labels = algorithm.process(pcd_array);
 

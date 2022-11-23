@@ -1,7 +1,7 @@
 #pragma once
 
-#include "histogram.hpp"
-#include "planeseg.hpp"
+#include "algorithm/histogram.h"
+#include "algorithm/cell_segment.h"
 
 #include <Eigen/Core>
 #include <opencv2/opencv.hpp>
@@ -32,7 +32,7 @@ class PlaneExtractor {
   int32_t _nr_pts_per_cell;
   int32_t _image_height;
   int32_t _image_width;
-  std::vector<std::shared_ptr<PlaneSeg>> _cell_grid;
+  std::vector<std::shared_ptr<CellSegment>> _cell_grid;
   cv::Mat_<int32_t> _grid_plane_seg_map;
   cv::Mat_<label_t> _grid_plane_seg_map_eroded;
   std::vector<label_t> _seg_map_stacked;
@@ -42,19 +42,19 @@ class PlaneExtractor {
   std::vector<float> computeCellDistTols(
       Eigen::MatrixXf const& pcd_array,
       std::bitset<BITSET_SIZE> const& planar_flags);
-  std::vector<std::shared_ptr<PlaneSeg>> createPlaneSegments(
+  std::vector<std::shared_ptr<CellSegment>> createPlaneSegments(
       Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags,
       std::vector<float> const& cell_dist_tols);
   std::vector<int32_t> mergePlanes(
-      std::vector<std::shared_ptr<PlaneSeg>>& plane_segments);
+      std::vector<std::shared_ptr<CellSegment>>& plane_segments);
   void refinePlanes(
-      std::vector<std::shared_ptr<PlaneSeg>> const& plane_segments,
+      std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
       std::vector<int32_t> const& merge_labels,
       Eigen::MatrixXf const& pcd_array);
   cv::Mat toLabels();
   cv::Mat coarseToLabels(std::vector<int32_t> const& labels);
   void cleanArtifacts();
-  void refineCells(std::shared_ptr<const PlaneSeg> const plane,
+  void refineCells(std::shared_ptr<const CellSegment> const plane,
                    label_t label,
                    cv::Mat const& mask,
                    Eigen::MatrixXf const& pcd_array);

@@ -1,61 +1,9 @@
-#pragma once
+#include "algorithm/cell_segment.h"
 
-#include "config.hpp"
-
-#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 namespace deplex {
-class PlaneSeg {
- public:
-  PlaneSeg(int32_t cell_id, int32_t cell_width, int32_t cell_height,
-           Eigen::MatrixXf const& pcd_array, config::Config const& config);
-
-  PlaneSeg(PlaneSeg const& other) = default;
-  PlaneSeg& operator=(PlaneSeg const& other) = default;
-
-  PlaneSeg& operator+=(PlaneSeg const& other);
-
-  void calculateStats();
-  bool isPlanar();
-  Eigen::Vector3d const& getNormal() const { return _stats._normal; }
-  Eigen::Vector3d const& getMean() const { return _stats._mean; }
-  double getScore() const { return _stats._score; }
-  double getMSE() const { return _stats._mse; }
-  double getD() const { return _stats._d; }
-
- private:
-  struct Stats {
-    friend class PlaneSeg;
-
-   public:
-    Stats();
-    Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
-          Eigen::VectorXf const& Z);
-
-   private:
-    void makePCA();
-    Eigen::Vector3d _normal;
-    Eigen::Vector3d _mean;
-    double _d;
-    double _score;
-    double _mse;
-    float _x, _y, _z, _xx, _yy, _zz, _xy, _xz, _yz;
-    int32_t _nr_pts;
-  } _stats;
-  Eigen::MatrixXf const* const _ptr_pcd_array;
-  config::Config const* const _config;
-  int32_t _nr_pts_per_cell;
-  int32_t _cell_width;
-  int32_t _cell_height;
-  int32_t _offset;
-  bool isValidPoints() const;
-  bool isDepthContinuous() const;
-  bool _isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
-  bool _isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
-  void initStats();
-};
-
-PlaneSeg& PlaneSeg::operator+=(PlaneSeg const& other) {
+CellSegment& CellSegment::operator+=(CellSegment const& other) {
   _stats._x += other._stats._x;
   _stats._y += other._stats._y;
   _stats._z += other._stats._z;
@@ -69,9 +17,9 @@ PlaneSeg& PlaneSeg::operator+=(PlaneSeg const& other) {
   return *this;
 }
 
-PlaneSeg::Stats::Stats() : _mse(-1) {}
+CellSegment::Stats::Stats() : _mse(-1) {}
 
-PlaneSeg::Stats::Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
+CellSegment::Stats::Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
                        Eigen::VectorXf const& Z)
     : _x(X.sum()),
       _y(Y.sum()),
@@ -86,7 +34,7 @@ PlaneSeg::Stats::Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
   makePCA();
 }
 
-void PlaneSeg::Stats::makePCA() {
+void CellSegment::Stats::makePCA() {
   _mean = Eigen::Vector3d(_x, _y, _z) / _nr_pts;
 
   Eigen::Matrix3d cov{{_xx - _x * _x / _nr_pts, _xy - _x * _y / _nr_pts,
@@ -110,7 +58,7 @@ void PlaneSeg::Stats::makePCA() {
   _score = es.eigenvalues()[1] / es.eigenvalues()[0];
 }
 
-PlaneSeg::PlaneSeg(int32_t cell_id, int32_t cell_width, int32_t cell_height,
+CellSegment::CellSegment(int32_t cell_id, int32_t cell_width, int32_t cell_height,
                    Eigen::MatrixXf const& pcd_array,
                    config::Config const& config)
     : _ptr_pcd_array(&pcd_array),
@@ -120,7 +68,7 @@ PlaneSeg::PlaneSeg(int32_t cell_id, int32_t cell_width, int32_t cell_height,
       _cell_height(cell_height),
       _offset(cell_id * cell_width * cell_height) {}
 
-bool PlaneSeg::isPlanar() {
+bool CellSegment::isPlanar() {
   if (isValidPoints() && isDepthContinuous()) {
     initStats();
     float depth_sigma_coeff = _config->getFloat("depthSigmaCoeff");
@@ -132,7 +80,7 @@ bool PlaneSeg::isPlanar() {
   return false;
 }
 
-bool PlaneSeg::isValidPoints() const {
+bool CellSegment::isValidPoints() const {
   Eigen::VectorXf cell_z =
       _ptr_pcd_array->block(_offset, 2, _nr_pts_per_cell, 1);
 
@@ -142,7 +90,7 @@ bool PlaneSeg::isValidPoints() const {
   return valid_pts >= valid_pts_threshold;
 }
 
-bool PlaneSeg::_isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
+bool CellSegment::_isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
   float depth_disc_threshold = _config->getFloat("depthDiscontinuityThreshold");
   Eigen::Index middle = cell_z.rows() / 2;
   float prev_depth = cell_z(middle, 0);
@@ -159,7 +107,7 @@ bool PlaneSeg::_isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
   return disc_count < _config->getInt("maxNumberDepthDiscontinuity");
 }
 
-bool PlaneSeg::_isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
+bool CellSegment::_isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
   float depth_disc_threshold = _config->getFloat("depthDiscontinuityThreshold");
   Eigen::Index middle = cell_z.cols() / 2;
   float prev_depth = cell_z(0, middle);
@@ -176,7 +124,7 @@ bool PlaneSeg::_isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
   return disc_count < _config->getInt("maxNumberDepthDiscontinuity");
 }
 
-bool PlaneSeg::isDepthContinuous() const {
+bool CellSegment::isDepthContinuous() const {
   Eigen::MatrixXf cell_z =
       _ptr_pcd_array->block(_offset, 2, _nr_pts_per_cell, 1)
           .reshaped(_cell_height, _cell_width);
@@ -184,7 +132,7 @@ bool PlaneSeg::isDepthContinuous() const {
   return _isHorizontalContinuous(cell_z) && _isVerticalContinuous(cell_z);
 }
 
-void PlaneSeg::initStats() {
+void CellSegment::initStats() {
   Eigen::VectorXf cell_x =
       _ptr_pcd_array->block(_offset, 0, _nr_pts_per_cell, 1);
   Eigen::VectorXf cell_y =
@@ -195,6 +143,5 @@ void PlaneSeg::initStats() {
   _stats = Stats(cell_x, cell_y, cell_z);
 }
 
-void PlaneSeg::calculateStats() { _stats.makePCA(); }
-
+void CellSegment::calculateStats() { _stats.makePCA(); }
 }  // namespace deplex
