@@ -3,7 +3,7 @@
 #include <Eigen/Core>
 #include <cstdint>
 
-#include "algorithm/config.h"
+#include "deplex/algorithm/config.h"
 
 namespace deplex {
 class CellSegment {

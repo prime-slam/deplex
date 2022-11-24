@@ -1,4 +1,4 @@
-#include "algorithm/config.h"
+#include "deplex/algorithm/config.h"
 
 #include <fstream>
 

@@ -1,4 +1,4 @@
-#include "algorithm/plane_extractor.h"
+#include "deplex/algorithm/plane_extractor.h"
 
 #include <numeric>
 #include <opencv2/core/eigen.hpp>

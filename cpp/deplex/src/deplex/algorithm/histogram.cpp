@@ -1,4 +1,4 @@
-#include <algorithm/histogram.h>
+#include "deplex/algorithm/histogram.h"
 
 namespace deplex {
 Histogram::Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXd const& P,

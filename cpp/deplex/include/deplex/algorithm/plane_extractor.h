@@ -1,13 +1,13 @@
 #pragma once
 
-#include "algorithm/histogram.h"
-#include "algorithm/cell_segment.h"
-
 #include <Eigen/Core>
-#include <opencv2/opencv.hpp>
 #include <bitset>
-#include <vector>
 #include <memory>
+#include <opencv2/opencv.hpp>
+#include <vector>
+
+#include "deplex/algorithm/cell_segment.h"
+#include "deplex/algorithm/histogram.h"
 
 #ifndef BITSET_SIZE
 #define BITSET_SIZE 65536  // 2^16

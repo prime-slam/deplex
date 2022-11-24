@@ -1,4 +1,4 @@
-#include "image_to_cloud.h"
+#include "deplex/utils/image_to_cloud.h"
 
 #include <fstream>
 #include <opencv2/core/eigen.hpp>

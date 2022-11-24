@@ -1,4 +1,5 @@
-#include "deplex.h"
+#include <deplex/algorithm/plane_extractor.h>
+#include <deplex/utils/image_to_cloud.h>
 
 #include <filesystem>
 
