@@ -1,12 +1,12 @@
 #include "deplex/algorithm/histogram.h"
 
 namespace deplex {
-Histogram::Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXd const& P,
+Histogram::Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXd const& normals,
                      std::bitset<BITSET_SIZE> const& mask)
     : nr_bins_per_coord_(nr_bins_per_coord),
-      nr_points_(static_cast<int32_t>(P.rows())),
+      nr_points_(static_cast<int32_t>(normals.rows())),
       hist_(nr_bins_per_coord * nr_bins_per_coord, 0),
-      bins_(static_cast<int32_t>(P.rows()), -1) {
+      bins_(static_cast<int32_t>(normals.rows()), -1) {
   // Set limits
   // Polar angle [0 pi]
   double min_X(0), max_X(M_PI);
@@ -16,10 +16,10 @@ Histogram::Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXd const& P,
   int X_q(0), Y_q(0);
   for (size_t i = mask._Find_first(); i != mask.size();
        i = mask._Find_next(i)) {
-    X_q = static_cast<int>((nr_bins_per_coord_ - 1) * (P(i, 0) - min_X) /
+    X_q = static_cast<int>((nr_bins_per_coord_ - 1) * (normals(i, 0) - min_X) /
                            (max_X - min_X));
     if (X_q > 0) {
-      Y_q = static_cast<int>((nr_bins_per_coord_ - 1) * (P(i, 1) - min_Y) /
+      Y_q = static_cast<int>((nr_bins_per_coord_ - 1) * (normals(i, 1) - min_Y) /
                              (max_Y - min_Y));
     } else {
       Y_q = 0;
