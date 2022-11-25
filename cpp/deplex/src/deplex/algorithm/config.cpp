@@ -3,11 +3,9 @@
 #include <fstream>
 
 namespace deplex::config {
-Config::Config(std::map<std::string, std::string> const& param_map)
-    : param_map_(param_map) {}
+Config::Config(std::map<std::string, std::string> const& param_map) : param_map_(param_map) {}
 
-Config::Config(std::string const& config_path)
-    : param_map_(iniLoad(config_path)) {}
+Config::Config(std::string const& config_path) : param_map_(iniLoad(config_path)) {}
 
 std::string Config::findValue(std::string const& name) const {
   auto value_ptr = param_map_.find(name);
@@ -16,8 +14,7 @@ std::string Config::findValue(std::string const& name) const {
   return value_ptr->second;
 }
 
-std::map<std::string, std::string> Config::iniLoad(
-    std::string const& path) const {
+std::map<std::string, std::string> Config::iniLoad(std::string const& path) const {
   std::map<std::string, std::string> parameters;
   std::ifstream ini_file(path);
   if (!ini_file.is_open()) {

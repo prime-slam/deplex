@@ -28,8 +28,7 @@ const config::Config PlaneExtractor::kDefaultConfig{
      {"depthDiscontinuityThreshold", "160"},
      {"maxNumberDepthDiscontinuity", "1"}}};
 
-PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width,
-                               config::Config config)
+PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config)
     : config_(config),
       nr_horizontal_cells_(image_width / config.getInt("patchSize")),
       nr_vertical_cells_(image_height / config.getInt("patchSize")),
@@ -39,8 +38,7 @@ PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width,
       image_width_(image_width),
       cell_grid_(nr_total_cells_, nullptr),
       grid_plane_seg_map_(nr_vertical_cells_, nr_horizontal_cells_, 0),
-      grid_plane_seg_map_eroded_(nr_vertical_cells_, nr_horizontal_cells_,
-                                 uchar(0)),
+      grid_plane_seg_map_eroded_(nr_vertical_cells_, nr_horizontal_cells_, uchar(0)),
       seg_map_stacked_(image_height * image_width, 0) {}
 
 Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
@@ -57,8 +55,7 @@ Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
   // 2. Histogram initialization
   Histogram hist = initializeHistogram(planar_flags);
   // 3. Compute cell dist tols
-  std::vector<float> cell_dist_tols =
-      computeCellDistTols(organized_array, planar_flags);
+  std::vector<float> cell_dist_tols = computeCellDistTols(organized_array, planar_flags);
   // 4. Region growing
   auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
 #ifdef DEBUG_DEPLEX
@@ -98,8 +95,7 @@ Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
   return eigen_labels.reshaped<Eigen::RowMajor>();
 }
 
-void PlaneExtractor::organizeByCell(Eigen::MatrixXf const& pcd_array,
-                                    Eigen::MatrixXf* out) {
+void PlaneExtractor::organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out) {
   int32_t patch_size = config_.getInt("patchSize");
   int32_t mxn = image_width_ * image_height_;
   int32_t mxn2 = 2 * mxn;
@@ -111,9 +107,7 @@ void PlaneExtractor::organizeByCell(Eigen::MatrixXf const& pcd_array,
     for (int c = 0; c < image_width_; c++) {
       int cell_c = c / patch_size;
       int local_c = c % patch_size;
-      auto shift =
-          (cell_r * nr_horizontal_cells_ + cell_c) * patch_size * patch_size +
-          local_r * patch_size + local_c;
+      auto shift = (cell_r * nr_horizontal_cells_ + cell_c) * patch_size * patch_size + local_r * patch_size + local_c;
 
       *(out->data() + shift) = *(pcd_array.data() + stacked_id);
       *(out->data() + mxn + shift) = *(pcd_array.data() + mxn + stacked_id);
@@ -123,16 +117,15 @@ void PlaneExtractor::organizeByCell(Eigen::MatrixXf const& pcd_array,
   }
 }
 
-std::bitset<BITSET_SIZE> PlaneExtractor::findPlanarCells(
-    Eigen::MatrixXf const& pcd_array) {
+std::bitset<BITSET_SIZE> PlaneExtractor::findPlanarCells(Eigen::MatrixXf const& pcd_array) {
   std::bitset<BITSET_SIZE> planar_flags;
   int32_t cell_width = config_.getInt("patchSize");
   int32_t cell_height = config_.getInt("patchSize");
   int32_t stacked_cell_id = 0;
   for (Eigen::Index cell_r = 0; cell_r < nr_vertical_cells_; ++cell_r) {
     for (Eigen::Index cell_h = 0; cell_h < nr_horizontal_cells_; ++cell_h) {
-      cell_grid_[stacked_cell_id] = std::make_shared<CellSegment>(
-          stacked_cell_id, cell_width, cell_height, pcd_array, config_);
+      cell_grid_[stacked_cell_id] =
+          std::make_shared<CellSegment>(stacked_cell_id, cell_width, cell_height, pcd_array, config_);
       planar_flags[stacked_cell_id] = cell_grid_[stacked_cell_id]->isPlanar();
       ++stacked_cell_id;
     }
@@ -140,26 +133,21 @@ std::bitset<BITSET_SIZE> PlaneExtractor::findPlanarCells(
   return planar_flags;
 }
 
-Histogram PlaneExtractor::initializeHistogram(
-    std::bitset<BITSET_SIZE> const& planar_flags) {
+Histogram PlaneExtractor::initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags) {
   Eigen::MatrixXd spherical_coord(nr_total_cells_, 2);
-  for (size_t cell_id = planar_flags._Find_first();
-       cell_id != planar_flags.size();
+  for (size_t cell_id = planar_flags._Find_first(); cell_id != planar_flags.size();
        cell_id = planar_flags._Find_next(cell_id)) {
     Eigen::Vector3d cell_normal = cell_grid_[cell_id]->getNormal();
-    double n_proj_norm =
-        sqrt(cell_normal[0] * cell_normal[0] + cell_normal[1] * cell_normal[1]);
+    double n_proj_norm = sqrt(cell_normal[0] * cell_normal[0] + cell_normal[1] * cell_normal[1]);
     spherical_coord(cell_id, 0) = acos(-cell_normal[2]);
-    spherical_coord(cell_id, 1) =
-        atan2(cell_normal[0] / n_proj_norm, cell_normal[1] / n_proj_norm);
+    spherical_coord(cell_id, 1) = atan2(cell_normal[0] / n_proj_norm, cell_normal[1] / n_proj_norm);
   }
   int nr_bins_per_coord = config_.getInt("histogramBinsPerCoord");
   return Histogram{nr_bins_per_coord, spherical_coord, planar_flags};
 }
 
-std::vector<float> PlaneExtractor::computeCellDistTols(
-    Eigen::MatrixXf const& pcd_array,
-    std::bitset<BITSET_SIZE> const& planar_flags) {
+std::vector<float> PlaneExtractor::computeCellDistTols(Eigen::MatrixXf const& pcd_array,
+                                                       std::bitset<BITSET_SIZE> const& planar_flags) {
   std::vector<float> cell_dist_tols(nr_total_cells_, 0);
   double cos_angle_for_merge = config_.getFloat("minCosAngleForMerge");
   float sin_angle_for_merge = sqrt(1 - pow(cos_angle_for_merge, 2));
@@ -167,17 +155,12 @@ std::vector<float> PlaneExtractor::computeCellDistTols(
   float min_merge_dist = 20.0f;
   float max_merge_dist = config_.getFloat("maxMergeDist");
 
-  for (size_t cell_id = planar_flags._Find_first();
-       cell_id != planar_flags.size();
+  for (size_t cell_id = planar_flags._Find_first(); cell_id != planar_flags.size();
        cell_id = planar_flags._Find_next(cell_id)) {
-    float cell_diameter =
-        (pcd_array.block(cell_id * nr_pts_per_cell_ + nr_pts_per_cell_ - 1, 0,
-                         1, 3) -
-         pcd_array.block(cell_id * nr_pts_per_cell_, 0, 1, 3))
-            .norm();
-    float truncated_distance =
-        std::min(std::max(cell_diameter * sin_angle_for_merge, min_merge_dist),
-                 max_merge_dist);
+    float cell_diameter = (pcd_array.block(cell_id * nr_pts_per_cell_ + nr_pts_per_cell_ - 1, 0, 1, 3) -
+                           pcd_array.block(cell_id * nr_pts_per_cell_, 0, 1, 3))
+                              .norm();
+    float truncated_distance = std::min(std::max(cell_diameter * sin_angle_for_merge, min_merge_dist), max_merge_dist);
     cell_dist_tols[cell_id] = powf(truncated_distance, 2);
   }
 
@@ -185,8 +168,7 @@ std::vector<float> PlaneExtractor::computeCellDistTols(
 }
 
 std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
-    Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags,
-    std::vector<float> const& cell_dist_tols) {
+    Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags, std::vector<float> const& cell_dist_tols) {
   std::vector<std::shared_ptr<CellSegment>> plane_segments;
   std::bitset<BITSET_SIZE> unassigned_mask(planar_flags);
   auto remaining_planar_cells = static_cast<int32_t>(planar_flags.count());
@@ -194,8 +176,7 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
   while (remaining_planar_cells > 0) {
     // 1. Seeding
     std::vector<int32_t> seed_candidates = hist.getPointsFromMostFrequentBin();
-    if (seed_candidates.size() <
-        config_.getInt("minRegionGrowingCandidateSize")) {
+    if (seed_candidates.size() < config_.getInt("minRegionGrowingCandidateSize")) {
       return plane_segments;
     }
     // 2. Select seed with minimum MSE
@@ -214,8 +195,7 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
     std::bitset<BITSET_SIZE> activation_map;
     growSeed(x, y, seed_id, unassigned_mask, &activation_map, cell_dist_tols);
     // 4. Merge activated cells & remove from hist
-    for (size_t i = activation_map._Find_first(); i != activation_map.size();
-         i = activation_map._Find_next(i)) {
+    for (size_t i = activation_map._Find_first(); i != activation_map.size(); i = activation_map._Find_next(i)) {
       *new_segment += *cell_grid_[i];
       hist.removePoint(static_cast<int32_t>(i));
       --remaining_planar_cells;
@@ -250,8 +230,7 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
   return plane_segments;
 }
 
-std::vector<int32_t> PlaneExtractor::mergePlanes(
-    std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
+std::vector<int32_t> PlaneExtractor::mergePlanes(std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
   size_t nr_planes = plane_segments.size();
   // Boolean matrix [nr_planes X nr_planes]
   auto planes_association_mx = getConnectedComponents(nr_planes);
@@ -263,16 +242,12 @@ std::vector<int32_t> PlaneExtractor::mergePlanes(
     int32_t plane_id = plane_merge_labels[row_id];
     bool plane_expanded = false;
     for (size_t col_id = planes_association_mx[row_id]._Find_next(row_id);
-         col_id != planes_association_mx[row_id].size();
-         col_id = planes_association_mx[row_id]._Find_next(col_id)) {
-      double cos_angle = plane_segments[plane_id]->getNormal().dot(
-          plane_segments[col_id]->getNormal());
-      double distance = pow(plane_segments[plane_id]->getNormal().dot(
-                                plane_segments[col_id]->getMean()) +
+         col_id != planes_association_mx[row_id].size(); col_id = planes_association_mx[row_id]._Find_next(col_id)) {
+      double cos_angle = plane_segments[plane_id]->getNormal().dot(plane_segments[col_id]->getNormal());
+      double distance = pow(plane_segments[plane_id]->getNormal().dot(plane_segments[col_id]->getMean()) +
                                 plane_segments[plane_id]->getD(),
                             2);
-      if (cos_angle > config_.getFloat("minCosAngleForMerge") &&
-          distance < config_.getFloat("maxMergeDist")) {
+      if (cos_angle > config_.getFloat("minCosAngleForMerge") && distance < config_.getFloat("maxMergeDist")) {
         (*plane_segments[plane_id]) += (*plane_segments[col_id]);
         plane_merge_labels[col_id] = plane_id;
         plane_expanded = true;
@@ -286,10 +261,8 @@ std::vector<int32_t> PlaneExtractor::mergePlanes(
   return plane_merge_labels;
 }
 
-void PlaneExtractor::refinePlanes(
-    std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
-    std::vector<int32_t> const& merge_labels,
-    Eigen::MatrixXf const& pcd_array) {
+void PlaneExtractor::refinePlanes(std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
+                                  std::vector<int32_t> const& merge_labels, Eigen::MatrixXf const& pcd_array) {
   assert(plane_segments.size() == merge_labels.size());
   std::vector<std::shared_ptr<CellSegment>> plane_segments_final;
   cv::Mat mask(nr_vertical_cells_, nr_horizontal_cells_, CV_8U);
@@ -323,10 +296,8 @@ void PlaneExtractor::refinePlanes(
 
     cv::dilate(mask, mask_dilated, mask_square_kernel);
     cv::Mat mask_diff = mask_dilated - mask_eroded;
-    grid_plane_seg_map_eroded_.setTo(plane_segments_final.size(),
-                                     mask_eroded > 0);
-    refineCells(plane_segments[i], plane_segments_final.size(), mask_diff,
-                pcd_array);
+    grid_plane_seg_map_eroded_.setTo(plane_segments_final.size(), mask_eroded > 0);
+    refineCells(plane_segments[i], plane_segments_final.size(), mask_diff, pcd_array);
   }
 }
 
@@ -336,20 +307,17 @@ cv::Mat PlaneExtractor::toLabels() {
   int32_t cell_width = config_.getInt("patchSize");
   int32_t cell_height = config_.getInt("patchSize");
   for (int cell_r = 0; cell_r < nr_vertical_cells_; cell_r++) {
-    auto grid_plane_eroded_row_ptr =
-        grid_plane_seg_map_eroded_.ptr<label_t>(cell_r);
+    auto grid_plane_eroded_row_ptr = grid_plane_seg_map_eroded_.ptr<label_t>(cell_r);
     int r_offset = cell_r * cell_height;
     int r_limit = r_offset + cell_height;
     for (int cell_c = 0; cell_c < nr_horizontal_cells_; cell_c++) {
       int c_offset = cell_c * cell_width;
       int c_limit = c_offset + cell_width;
       if (grid_plane_eroded_row_ptr[cell_c] > 0) {
-        seg_out(cv::Rect(c_offset, r_offset, cell_width, cell_height))
-            .setTo(grid_plane_eroded_row_ptr[cell_c]);
+        seg_out(cv::Rect(c_offset, r_offset, cell_width, cell_height)).setTo(grid_plane_eroded_row_ptr[cell_c]);
       } else {
         // Set cell pixels one by one
-        auto idx = nr_pts_per_cell_ * cell_r * nr_horizontal_cells_ +
-                   nr_pts_per_cell_ * cell_c;
+        auto idx = nr_pts_per_cell_ * cell_r * nr_horizontal_cells_ + nr_pts_per_cell_ * cell_c;
         for (int r = r_offset; r < r_limit; r++) {
           auto row_ptr = seg_out.ptr<uchar>(r);
           for (int c = c_offset; c < c_limit; c++) {
@@ -371,8 +339,7 @@ cv::Mat PlaneExtractor::coarseToLabels(std::vector<int32_t> const& labels) {
 
   for (int32_t i = 0; i < labels.size(); ++i) {
     if (labels[i] != i) {
-      grid_plane_seg_map_merged.setTo(labels[i],
-                                      grid_plane_seg_map_merged == i);
+      grid_plane_seg_map_merged.setTo(labels[i], grid_plane_seg_map_merged == i);
     }
   }
 
@@ -386,8 +353,7 @@ void PlaneExtractor::cleanArtifacts() {
   seg_map_stacked_.resize(image_height_ * image_width_, 0);
 }
 
-void PlaneExtractor::refineCells(const std::shared_ptr<const CellSegment> plane,
-                                 label_t label, cv::Mat const& mask,
+void PlaneExtractor::refineCells(const std::shared_ptr<const CellSegment> plane, label_t label, cv::Mat const& mask,
                                  Eigen::MatrixXf const& pcd_array) {
   int32_t stacked_cell_id = 0;
   auto refinement_coeff = config_.getFloat("refinementMultiplierCoeff");
@@ -403,13 +369,9 @@ void PlaneExtractor::refineCells(const std::shared_ptr<const CellSegment> plane,
       int32_t next_offset = offset + nr_pts_per_cell_;
       auto max_dist = refinement_coeff * plane->getMSE();
       Eigen::ArrayXf distances_cell_stacked =
-          pcd_array.block(offset, 0, nr_pts_per_cell_, 1).array() *
-              plane->getNormal()[0] +
-          pcd_array.block(offset, 1, nr_pts_per_cell_, 1).array() *
-              plane->getNormal()[1] +
-          pcd_array.block(offset, 2, nr_pts_per_cell_, 1).array() *
-              plane->getNormal()[2] +
-          plane->getD();
+          pcd_array.block(offset, 0, nr_pts_per_cell_, 1).array() * plane->getNormal()[0] +
+          pcd_array.block(offset, 1, nr_pts_per_cell_, 1).array() * plane->getNormal()[1] +
+          pcd_array.block(offset, 2, nr_pts_per_cell_, 1).array() * plane->getNormal()[2] + plane->getD();
 
       for (int pt = offset, j = 0; pt < next_offset; ++j, ++pt) {
         auto dist = powf(distances_cell_stacked(j), 2);
@@ -423,13 +385,11 @@ void PlaneExtractor::refineCells(const std::shared_ptr<const CellSegment> plane,
   }
 }
 
-void PlaneExtractor::growSeed(int32_t x, int32_t y, int32_t prev_index,
-                              std::bitset<BITSET_SIZE> const& unassigned,
+void PlaneExtractor::growSeed(int32_t x, int32_t y, int32_t prev_index, std::bitset<BITSET_SIZE> const& unassigned,
                               std::bitset<BITSET_SIZE>* activation_map,
                               std::vector<float> const& cell_dist_tols) const {
   int32_t index = x + nr_horizontal_cells_ * y;
-  if (index >= nr_total_cells_)
-    throw std::out_of_range("growSeed: Index out of total cell number");
+  if (index >= nr_total_cells_) throw std::out_of_range("growSeed: Index out of total cell number");
   if (!unassigned[index] || (*activation_map)[index]) {
     return;
   }
@@ -457,8 +417,7 @@ void PlaneExtractor::growSeed(int32_t x, int32_t y, int32_t prev_index,
     growSeed(x, y + 1, index, unassigned, activation_map, cell_dist_tols);
 }
 
-std::vector<std::bitset<BITSET_SIZE>> PlaneExtractor::getConnectedComponents(
-    size_t nr_planes) const {
+std::vector<std::bitset<BITSET_SIZE>> PlaneExtractor::getConnectedComponents(size_t nr_planes) const {
   std::vector<std::bitset<BITSET_SIZE>> planes_assoc_matrix(nr_planes);
 
   for (int32_t row_id = 0; row_id < grid_plane_seg_map_.rows - 1; ++row_id) {

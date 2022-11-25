@@ -5,8 +5,7 @@
 #include <opencv2/imgcodecs.hpp>
 
 namespace deplex::utils {
-Eigen::MatrixXf readImage(std::string const& image_path,
-                          Eigen::Matrix3f const& K) {
+Eigen::MatrixXf readImage(std::string const& image_path, Eigen::Matrix3f const& K) {
   cv::Mat d_img = cv::imread(image_path, cv::IMREAD_ANYDEPTH);
   d_img.convertTo(d_img, CV_32F);
   Eigen::MatrixXf image_mx;
@@ -20,25 +19,20 @@ Eigen::MatrixXf readImage(std::string const& image_path,
   Eigen::MatrixXf pcd_points(image_width * image_height, 3);
 
   Eigen::VectorXf column_indices =
-      Eigen::VectorXf::LinSpaced(image_width, 0.0, image_width - 1)
-          .replicate(image_height, 1);
+      Eigen::VectorXf::LinSpaced(image_width, 0.0, image_width - 1).replicate(image_height, 1);
 
-  Eigen::VectorXf row_indices =
-      Eigen::VectorXf::LinSpaced(image_height, 0.0, image_height - 1)
-          .replicate(1, image_width)
-          .reshaped<Eigen::RowMajor>();
+  Eigen::VectorXf row_indices = Eigen::VectorXf::LinSpaced(image_height, 0.0, image_height - 1)
+                                    .replicate(1, image_width)
+                                    .reshaped<Eigen::RowMajor>();
 
   pcd_points.col(2) = image_mx.reshaped<Eigen::RowMajor>();
-  pcd_points.col(0) =
-      (column_indices.array() - cx) * pcd_points.col(2).array() / fx;
-  pcd_points.col(1) =
-      (row_indices.array() - cy) * pcd_points.col(2).array() / fy;
+  pcd_points.col(0) = (column_indices.array() - cx) * pcd_points.col(2).array() / fx;
+  pcd_points.col(1) = (row_indices.array() - cy) * pcd_points.col(2).array() / fy;
 
   return pcd_points;
 }
 
-Eigen::MatrixXf readImage(std::string const& image_path,
-                          std::string const& intrinsics_path) {
+Eigen::MatrixXf readImage(std::string const& image_path, std::string const& intrinsics_path) {
   std::ifstream in(intrinsics_path);
   Eigen::Matrix3f K;
   for (int i = 0; i < 3; ++i) {

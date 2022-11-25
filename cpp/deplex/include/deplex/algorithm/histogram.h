@@ -11,9 +11,10 @@
 namespace deplex {
 class Histogram {
  public:
-  Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXd const& normals,
-            std::bitset<BITSET_SIZE> const& mask);
+  Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXd const& normals, std::bitset<BITSET_SIZE> const& mask);
+
   std::vector<int32_t> getPointsFromMostFrequentBin() const;
+
   void removePoint(int32_t point_id);
 
  private:
