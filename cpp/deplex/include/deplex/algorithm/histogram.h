@@ -17,10 +17,9 @@ class Histogram {
   void removePoint(int32_t point_id);
 
  private:
-  std::vector<int32_t> _bins;
-  std::vector<int32_t> _hist;
-  int32_t _nr_bins_per_coord;
-  int32_t _nr_bins;
-  int32_t _nr_points;
+  std::vector<int32_t> bins_;
+  std::vector<int32_t> hist_;
+  int32_t nr_bins_per_coord_;
+  int32_t nr_points_;
 };
 }  // namespace deplex

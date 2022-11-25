@@ -4,43 +4,43 @@
 
 namespace deplex {
 CellSegment& CellSegment::operator+=(CellSegment const& other) {
-  _stats._x += other._stats._x;
-  _stats._y += other._stats._y;
-  _stats._z += other._stats._z;
-  _stats._xx += other._stats._xx;
-  _stats._yy += other._stats._yy;
-  _stats._zz += other._stats._zz;
-  _stats._xy += other._stats._xy;
-  _stats._xz += other._stats._xz;
-  _stats._yz += other._stats._yz;
-  _stats._nr_pts += other._stats._nr_pts;
+  stats_.x_ += other.stats_.x_;
+  stats_.y_ += other.stats_.y_;
+  stats_.z_ += other.stats_.z_;
+  stats_.xx_ += other.stats_.xx_;
+  stats_.yy_ += other.stats_.yy_;
+  stats_.zz_ += other.stats_.zz_;
+  stats_.xy_ += other.stats_.xy_;
+  stats_.xz_ += other.stats_.xz_;
+  stats_.yz_ += other.stats_.yz_;
+  stats_.nr_pts_ += other.stats_.nr_pts_;
   return *this;
 }
 
-CellSegment::Stats::Stats() : _mse(-1) {}
+CellSegment::Stats::Stats() : mse_(-1) {}
 
 CellSegment::Stats::Stats(Eigen::VectorXf const& X, Eigen::VectorXf const& Y,
-                       Eigen::VectorXf const& Z)
-    : _x(X.sum()),
-      _y(Y.sum()),
-      _z(Z.sum()),
-      _xx(X.dot(X)),
-      _yy(Y.dot(Y)),
-      _zz(Z.dot(Z)),
-      _xy(X.dot(Y)),
-      _xz(X.dot(Z)),
-      _yz(Y.dot(Z)),
-      _nr_pts(X.size()) {
+                          Eigen::VectorXf const& Z)
+    : x_(X.sum()),
+      y_(Y.sum()),
+      z_(Z.sum()),
+      xx_(X.dot(X)),
+      yy_(Y.dot(Y)),
+      zz_(Z.dot(Z)),
+      xy_(X.dot(Y)),
+      xz_(X.dot(Z)),
+      yz_(Y.dot(Z)),
+      nr_pts_(X.size()) {
   makePCA();
 }
 
 void CellSegment::Stats::makePCA() {
-  _mean = Eigen::Vector3d(_x, _y, _z) / _nr_pts;
+  mean_ = Eigen::Vector3d(x_, y_, z_) / nr_pts_;
 
-  Eigen::Matrix3d cov{{_xx - _x * _x / _nr_pts, _xy - _x * _y / _nr_pts,
-                       _xz - _x * _z / _nr_pts},
-                      {0.0, _yy - _y * _y / _nr_pts, _yz - _y * _z / _nr_pts},
-                      {0.0, 0.0, _zz - _z * _z / _nr_pts}};
+  Eigen::Matrix3d cov{{xx_ - x_ * x_ / nr_pts_, xy_ - x_ * y_ / nr_pts_,
+                       xz_ - x_ * z_ / nr_pts_},
+                      {0.0, yy_ - y_ * y_ / nr_pts_, yz_ - y_ * z_ / nr_pts_},
+                      {0.0, 0.0, zz_ - z_ * z_ / nr_pts_}};
 
   cov(1, 0) = cov(0, 1);
   cov(2, 0) = cov(0, 2);
@@ -49,49 +49,49 @@ void CellSegment::Stats::makePCA() {
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(cov);
   Eigen::VectorXd v = es.eigenvectors().col(0);
 
-  _d = -_mean.dot(v);
+  d_ = -mean_.dot(v);
   // Enforce normal orientation
-  _normal = (_d > 0 ? v : -v);
-  _d = (_d > 0 ? _d : -_d);
+  normal_ = (d_ > 0 ? v : -v);
+  d_ = (d_ > 0 ? d_ : -d_);
 
-  _mse = es.eigenvalues()[0] / _nr_pts;
-  _score = es.eigenvalues()[1] / es.eigenvalues()[0];
+  mse_ = es.eigenvalues()[0] / nr_pts_;
+  score_ = es.eigenvalues()[1] / es.eigenvalues()[0];
 }
 
-CellSegment::CellSegment(int32_t cell_id, int32_t cell_width, int32_t cell_height,
-                   Eigen::MatrixXf const& pcd_array,
-                   config::Config const& config)
-    : _ptr_pcd_array(&pcd_array),
-      _config(&config),
-      _nr_pts_per_cell(cell_width * cell_height),
-      _cell_width(cell_width),
-      _cell_height(cell_height),
-      _offset(cell_id * cell_width * cell_height) {}
+CellSegment::CellSegment(int32_t cell_id, int32_t cell_width,
+                         int32_t cell_height, Eigen::MatrixXf const& pcd_array,
+                         config::Config const& config)
+    : ptr_pcd_array_(&pcd_array),
+      config_(&config),
+      nr_pts_per_cell_(cell_width * cell_height),
+      cell_width_(cell_width),
+      cell_height_(cell_height),
+      offset_(cell_id * cell_width * cell_height) {}
 
 bool CellSegment::isPlanar() {
   if (isValidPoints() && isDepthContinuous()) {
     initStats();
-    float depth_sigma_coeff = _config->getFloat("depthSigmaCoeff");
-    float depth_sigma_margin = _config->getFloat("depthSigmaMargin");
+    float depth_sigma_coeff = config_->getFloat("depthSigmaCoeff");
+    float depth_sigma_margin = config_->getFloat("depthSigmaMargin");
     float planar_threshold =
-        depth_sigma_coeff * pow(_stats._mean[2], 2) + depth_sigma_margin;
-    return _stats._mse <= pow(planar_threshold, 2);
+        depth_sigma_coeff * pow(stats_.mean_[2], 2) + depth_sigma_margin;
+    return stats_.mse_ <= pow(planar_threshold, 2);
   }
   return false;
 }
 
 bool CellSegment::isValidPoints() const {
   Eigen::VectorXf cell_z =
-      _ptr_pcd_array->block(_offset, 2, _nr_pts_per_cell, 1);
+      ptr_pcd_array_->block(offset_, 2, nr_pts_per_cell_, 1);
 
   Eigen::Index valid_pts_threshold =
-      _nr_pts_per_cell / _config->getInt("minPtsPerCell");
+      nr_pts_per_cell_ / config_->getInt("minPtsPerCell");
   Eigen::Index valid_pts = (cell_z.array() > 0).count();
   return valid_pts >= valid_pts_threshold;
 }
 
 bool CellSegment::_isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
-  float depth_disc_threshold = _config->getFloat("depthDiscontinuityThreshold");
+  float depth_disc_threshold = config_->getFloat("depthDiscontinuityThreshold");
   Eigen::Index middle = cell_z.rows() / 2;
   float prev_depth = cell_z(middle, 0);
   int32_t disc_count = 0;
@@ -104,11 +104,11 @@ bool CellSegment::_isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
       ++disc_count;
   }
 
-  return disc_count < _config->getInt("maxNumberDepthDiscontinuity");
+  return disc_count < config_->getInt("maxNumberDepthDiscontinuity");
 }
 
 bool CellSegment::_isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
-  float depth_disc_threshold = _config->getFloat("depthDiscontinuityThreshold");
+  float depth_disc_threshold = config_->getFloat("depthDiscontinuityThreshold");
   Eigen::Index middle = cell_z.cols() / 2;
   float prev_depth = cell_z(0, middle);
   int32_t disc_count = 0;
@@ -121,27 +121,27 @@ bool CellSegment::_isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
       ++disc_count;
   }
 
-  return disc_count < _config->getInt("maxNumberDepthDiscontinuity");
+  return disc_count < config_->getInt("maxNumberDepthDiscontinuity");
 }
 
 bool CellSegment::isDepthContinuous() const {
   Eigen::MatrixXf cell_z =
-      _ptr_pcd_array->block(_offset, 2, _nr_pts_per_cell, 1)
-          .reshaped(_cell_height, _cell_width);
+      ptr_pcd_array_->block(offset_, 2, nr_pts_per_cell_, 1)
+          .reshaped(cell_height_, cell_width_);
 
   return _isHorizontalContinuous(cell_z) && _isVerticalContinuous(cell_z);
 }
 
 void CellSegment::initStats() {
   Eigen::VectorXf cell_x =
-      _ptr_pcd_array->block(_offset, 0, _nr_pts_per_cell, 1);
+      ptr_pcd_array_->block(offset_, 0, nr_pts_per_cell_, 1);
   Eigen::VectorXf cell_y =
-      _ptr_pcd_array->block(_offset, 1, _nr_pts_per_cell, 1);
+      ptr_pcd_array_->block(offset_, 1, nr_pts_per_cell_, 1);
   Eigen::VectorXf cell_z =
-      _ptr_pcd_array->block(_offset, 2, _nr_pts_per_cell, 1);
+      ptr_pcd_array_->block(offset_, 2, nr_pts_per_cell_, 1);
 
-  _stats = Stats(cell_x, cell_y, cell_z);
+  stats_ = Stats(cell_x, cell_y, cell_z);
 }
 
-void CellSegment::calculateStats() { _stats.makePCA(); }
+void CellSegment::calculateStats() { stats_.makePCA(); }
 }  // namespace deplex

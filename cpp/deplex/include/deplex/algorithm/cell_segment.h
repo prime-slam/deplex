@@ -18,11 +18,11 @@ class CellSegment {
 
   void calculateStats();
   bool isPlanar();
-  Eigen::Vector3d const& getNormal() const { return _stats._normal; }
-  Eigen::Vector3d const& getMean() const { return _stats._mean; }
-  double getScore() const { return _stats._score; }
-  double getMSE() const { return _stats._mse; }
-  double getD() const { return _stats._d; }
+  Eigen::Vector3d const& getNormal() const { return stats_.normal_; }
+  Eigen::Vector3d const& getMean() const { return stats_.mean_; }
+  double getScore() const { return stats_.score_; }
+  double getMSE() const { return stats_.mse_; }
+  double getD() const { return stats_.d_; }
 
  private:
   struct Stats {
@@ -35,20 +35,20 @@ class CellSegment {
 
    private:
     void makePCA();
-    Eigen::Vector3d _normal;
-    Eigen::Vector3d _mean;
-    double _d;
-    double _score;
-    double _mse;
-    float _x, _y, _z, _xx, _yy, _zz, _xy, _xz, _yz;
-    int32_t _nr_pts;
-  } _stats;
-  Eigen::MatrixXf const* const _ptr_pcd_array;
-  config::Config const* const _config;
-  int32_t _nr_pts_per_cell;
-  int32_t _cell_width;
-  int32_t _cell_height;
-  int32_t _offset;
+    Eigen::Vector3d normal_;
+    Eigen::Vector3d mean_;
+    double d_;
+    double score_;
+    double mse_;
+    float x_, y_, z_, xx_, yy_, zz_, xy_, xz_, yz_;
+    int32_t nr_pts_;
+  } stats_;
+  Eigen::MatrixXf const* const ptr_pcd_array_;
+  config::Config const* const config_;
+  int32_t nr_pts_per_cell_;
+  int32_t cell_width_;
+  int32_t cell_height_;
+  int32_t offset_;
   bool isValidPoints() const;
   bool isDepthContinuous() const;
   bool _isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;

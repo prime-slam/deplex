@@ -16,6 +16,6 @@ class Config {
  private:
   std::string findValue(std::string const& name) const;
   std::map<std::string, std::string> iniLoad(std::string const& path) const;
-  std::map<std::string, std::string> _param_map;
+  std::map<std::string, std::string> param_map_;
 };
 }  // namespace deplex::config

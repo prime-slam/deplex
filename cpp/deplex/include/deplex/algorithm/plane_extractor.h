@@ -25,17 +25,17 @@ class PlaneExtractor {
   const static config::Config kDefaultConfig;
 
  private:
-  config::Config _config;
-  int32_t _nr_horizontal_cells;
-  int32_t _nr_vertical_cells;
-  int32_t _nr_total_cells;
-  int32_t _nr_pts_per_cell;
-  int32_t _image_height;
-  int32_t _image_width;
-  std::vector<std::shared_ptr<CellSegment>> _cell_grid;
-  cv::Mat_<int32_t> _grid_plane_seg_map;
-  cv::Mat_<label_t> _grid_plane_seg_map_eroded;
-  std::vector<label_t> _seg_map_stacked;
+  config::Config config_;
+  int32_t nr_horizontal_cells_;
+  int32_t nr_vertical_cells_;
+  int32_t nr_total_cells_;
+  int32_t nr_pts_per_cell_;
+  int32_t image_height_;
+  int32_t image_width_;
+  std::vector<std::shared_ptr<CellSegment>> cell_grid_;
+  cv::Mat_<int32_t> grid_plane_seg_map_;
+  cv::Mat_<label_t> grid_plane_seg_map_eroded_;
+  std::vector<label_t> seg_map_stacked_;
   void organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out);
   std::bitset<BITSET_SIZE> findPlanarCells(Eigen::MatrixXf const& pcd_array);
   Histogram initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags);

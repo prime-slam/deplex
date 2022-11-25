@@ -4,14 +4,14 @@
 
 namespace deplex::config {
 Config::Config(std::map<std::string, std::string> const& param_map)
-    : _param_map(param_map) {}
+    : param_map_(param_map) {}
 
 Config::Config(std::string const& config_path)
-    : _param_map(iniLoad(config_path)) {}
+    : param_map_(iniLoad(config_path)) {}
 
 std::string Config::findValue(std::string const& name) const {
-  auto value_ptr = _param_map.find(name);
-  if (value_ptr == _param_map.end())
+  auto value_ptr = param_map_.find(name);
+  if (value_ptr == param_map_.end())
     throw std::runtime_error("Config invalid parameter name provided: " + name);
   return value_ptr->second;
 }
@@ -28,12 +28,12 @@ std::map<std::string, std::string> Config::iniLoad(
     std::getline(ini_file, line);
     if (line.empty() || line[0] == '#') continue;
     std::string key, value;
-    size_t eqPos = line.find_first_of("=");
-    if (eqPos == std::string::npos || eqPos == 0) {
+    size_t eq_pos = line.find_first_of('=');
+    if (eq_pos == std::string::npos || eq_pos == 0) {
       continue;
     }
-    key = line.substr(0, eqPos);
-    value = line.substr(eqPos + 1);
+    key = line.substr(0, eq_pos);
+    value = line.substr(eq_pos + 1);
     parameters[key] = value;
   }
 
