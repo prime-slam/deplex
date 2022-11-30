@@ -137,7 +137,7 @@ Histogram PlaneExtractor::initializeHistogram(std::bitset<BITSET_SIZE> const& pl
   Eigen::MatrixXd spherical_coord(nr_total_cells_, 2);
   for (size_t cell_id = planar_flags._Find_first(); cell_id != planar_flags.size();
        cell_id = planar_flags._Find_next(cell_id)) {
-    Eigen::Vector3d cell_normal = cell_grid_[cell_id]->getNormal();
+    Eigen::Vector3d cell_normal = cell_grid_[cell_id]->getStat().getNormal();
     double n_proj_norm = sqrt(cell_normal[0] * cell_normal[0] + cell_normal[1] * cell_normal[1]);
     spherical_coord(cell_id, 0) = acos(-cell_normal[2]);
     spherical_coord(cell_id, 1) = atan2(cell_normal[0] / n_proj_norm, cell_normal[1] / n_proj_norm);
@@ -183,9 +183,9 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
     int32_t seed_id;
     double min_mse = INT_MAX;
     for (int32_t seed_candidate : seed_candidates) {
-      if (cell_grid_[seed_candidate]->getMSE() < min_mse) {
+      if (cell_grid_[seed_candidate]->getStat().getMSE() < min_mse) {
         seed_id = seed_candidate;
-        min_mse = cell_grid_[seed_candidate]->getMSE();
+        min_mse = cell_grid_[seed_candidate]->getStat().getMSE();
       }
     }
     // 3. Grow seed
@@ -210,7 +210,7 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
     new_segment->calculateStats();
 
     // 5. Model fitting
-    if (new_segment->getScore() > config_.getFloat("minRegionPlanarityScore")) {
+    if (new_segment->getStat().getScore() > config_.getFloat("minRegionPlanarityScore")) {
       plane_segments.push_back(new_segment);
       auto nr_curr_planes = static_cast<int32_t>(plane_segments.size());
       // Mark cells
@@ -243,10 +243,12 @@ std::vector<int32_t> PlaneExtractor::mergePlanes(std::vector<std::shared_ptr<Cel
     bool plane_expanded = false;
     for (size_t col_id = planes_association_mx[row_id]._Find_next(row_id);
          col_id != planes_association_mx[row_id].size(); col_id = planes_association_mx[row_id]._Find_next(col_id)) {
-      double cos_angle = plane_segments[plane_id]->getNormal().dot(plane_segments[col_id]->getNormal());
-      double distance = pow(plane_segments[plane_id]->getNormal().dot(plane_segments[col_id]->getMean()) +
-                                plane_segments[plane_id]->getD(),
-                            2);
+      double cos_angle =
+          plane_segments[plane_id]->getStat().getNormal().dot(plane_segments[col_id]->getStat().getNormal());
+      double distance =
+          pow(plane_segments[plane_id]->getStat().getNormal().dot(plane_segments[col_id]->getStat().getMean()) +
+                  plane_segments[plane_id]->getStat().getD(),
+              2);
       if (cos_angle > config_.getFloat("minCosAngleForMerge") && distance < config_.getFloat("maxMergeDist")) {
         (*plane_segments[plane_id]) += (*plane_segments[col_id]);
         plane_merge_labels[col_id] = plane_id;
@@ -367,11 +369,12 @@ void PlaneExtractor::refineCells(const std::shared_ptr<const CellSegment> plane,
       }
       int32_t offset = stacked_cell_id * nr_pts_per_cell_;
       int32_t next_offset = offset + nr_pts_per_cell_;
-      auto max_dist = refinement_coeff * plane->getMSE();
+      auto max_dist = refinement_coeff * plane->getStat().getMSE();
       Eigen::ArrayXf distances_cell_stacked =
-          pcd_array.block(offset, 0, nr_pts_per_cell_, 1).array() * plane->getNormal()[0] +
-          pcd_array.block(offset, 1, nr_pts_per_cell_, 1).array() * plane->getNormal()[1] +
-          pcd_array.block(offset, 2, nr_pts_per_cell_, 1).array() * plane->getNormal()[2] + plane->getD();
+          pcd_array.block(offset, 0, nr_pts_per_cell_, 1).array() * plane->getStat().getNormal()[0] +
+          pcd_array.block(offset, 1, nr_pts_per_cell_, 1).array() * plane->getStat().getNormal()[1] +
+          pcd_array.block(offset, 2, nr_pts_per_cell_, 1).array() * plane->getStat().getNormal()[2] +
+          plane->getStat().getD();
 
       for (int pt = offset, j = 0; pt < next_offset; ++j, ++pt) {
         auto dist = powf(distances_cell_stacked(j), 2);
@@ -394,21 +397,19 @@ void PlaneExtractor::growSeed(int32_t x, int32_t y, int32_t prev_index, std::bit
     return;
   }
 
-  double d_1 = cell_grid_[prev_index]->getD();
-  Eigen::Vector3d normal_1 = cell_grid_[prev_index]->getNormal();
-  Eigen::Vector3d normal_2 = cell_grid_[index]->getNormal();
-  Eigen::Vector3d mean_2 = cell_grid_[index]->getMean();
+  double d_1 = cell_grid_[prev_index]->getStat().getD();
+  Eigen::Vector3d normal_1 = cell_grid_[prev_index]->getStat().getNormal();
+  Eigen::Vector3d normal_2 = cell_grid_[index]->getStat().getNormal();
+  Eigen::Vector3d mean_2 = cell_grid_[index]->getStat().getMean();
 
   double cos_angle = normal_1.dot(normal_2);
   double merge_dist = pow(normal_1.dot(mean_2) + d_1, 2);
-  if (cos_angle < config_.getFloat("minCosAngleForMerge") ||
-      merge_dist > cell_dist_tols[index]) {
+  if (cos_angle < config_.getFloat("minCosAngleForMerge") || merge_dist > cell_dist_tols[index]) {
     return;
   }
 
   activation_map->set(index);
-  if (x > 0)
-    growSeed(x - 1, y, index, unassigned, activation_map, cell_dist_tols);
+  if (x > 0) growSeed(x - 1, y, index, unassigned, activation_map, cell_dist_tols);
   if (x < nr_horizontal_cells_ - 1)
     growSeed(x + 1, y, index, unassigned, activation_map, cell_dist_tols);
   if (y > 0)

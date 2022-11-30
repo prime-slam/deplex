@@ -9,6 +9,7 @@ set(TARGET_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SRC_FILES
     ${TARGET_SOURCE_DIR}/deplex/algorithm/config.cpp
     ${TARGET_SOURCE_DIR}/deplex/algorithm/cell_segment.cpp
+    ${TARGET_SOURCE_DIR}/deplex/algorithm/cell_segment_stat.cpp
     ${TARGET_SOURCE_DIR}/deplex/algorithm/histogram.cpp
     ${TARGET_SOURCE_DIR}/deplex/algorithm/plane_extractor.cpp
     ${TARGET_SOURCE_DIR}/deplex/utils/image_to_cloud.cpp)
