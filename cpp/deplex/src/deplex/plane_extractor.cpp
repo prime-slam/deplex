@@ -1,34 +1,94 @@
-#include "deplex/algorithm/plane_extractor.h"
+#include "deplex/plane_extractor.h"
 
-#include <numeric>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/imgproc.hpp>
 
-#ifdef DEBUG_DEPLEX
-#include <fstream>
-#include <iostream>
+#include "cell_segment.h"
+#include "histogram.h"
+
+#ifndef BITSET_SIZE
+#define BITSET_SIZE 65536  // 2^16
 #endif
 
 namespace deplex {
 
-const config::Config PlaneExtractor::kDefaultConfig{
-    {// General parameters
-     {"patchSize", "12"},
-     {"histogramBinsPerCoord", "20"},
-     {"minCosAngleForMerge", "0.93"},
-     {"maxMergeDist", "500"},
-     {"minRegionGrowingCandidateSize", "5"},
-     {"minRegionGrowingCellsActivated", "4"},
-     {"minRegionPlanarityScore", "50"},
-     {"doRefinement", "true"},
-     {"refinementMultiplierCoeff", "15"},
-     // Parameters used in plane validation
-     {"depthSigmaCoeff", "1.425e-6"},
-     {"depthSigmaMargin", "10"},
-     {"minPtsPerCell", "3"},
-     {"depthDiscontinuityThreshold", "160"},
-     {"maxNumberDepthDiscontinuity", "1"}}};
+typedef uchar label_t;
 
-PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config)
+class PlaneExtractor::Impl {
+ public:
+  Impl(int32_t image_height, int32_t image_width, config::Config config = kDefaultConfig);
+
+  Eigen::VectorXi process(Eigen::MatrixXf const& pcd_array);
+
+ private:
+  config::Config config_;
+  int32_t nr_horizontal_cells_;
+  int32_t nr_vertical_cells_;
+  int32_t nr_total_cells_;
+  int32_t nr_pts_per_cell_;
+  int32_t image_height_;
+  int32_t image_width_;
+  std::vector<std::shared_ptr<CellSegment>> cell_grid_;
+  cv::Mat_<int32_t> grid_plane_seg_map_;
+  cv::Mat_<label_t> grid_plane_seg_map_eroded_;
+  std::vector<label_t> seg_map_stacked_;
+  void organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out);
+
+  std::bitset<BITSET_SIZE> findPlanarCells(Eigen::MatrixXf const& pcd_array);
+
+  Histogram initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags);
+
+  std::vector<float> computeCellDistTols(Eigen::MatrixXf const& pcd_array,
+                                         std::bitset<BITSET_SIZE> const& planar_flags);
+
+  std::vector<std::shared_ptr<CellSegment>> createPlaneSegments(Histogram hist,
+                                                                std::bitset<BITSET_SIZE> const& planar_flags,
+                                                                std::vector<float> const& cell_dist_tols);
+
+  std::vector<int32_t> mergePlanes(std::vector<std::shared_ptr<CellSegment>>& plane_segments);
+
+  void refinePlanes(std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
+                    std::vector<int32_t> const& merge_labels, Eigen::MatrixXf const& pcd_array);
+
+  cv::Mat toLabels();
+
+  cv::Mat coarseToLabels(std::vector<int32_t> const& labels);
+
+  void cleanArtifacts();
+
+  void refineCells(std::shared_ptr<const CellSegment> const plane, label_t label, cv::Mat const& mask,
+                   Eigen::MatrixXf const& pcd_array);
+
+  void growSeed(int32_t x, int32_t y, int32_t prev_index, std::bitset<BITSET_SIZE> const& unassigned,
+                std::bitset<BITSET_SIZE>* activation_map, std::vector<float> const& cell_dist_tols) const;
+
+  std::vector<std::bitset<BITSET_SIZE>> getConnectedComponents(size_t nr_planes) const;
+
+#ifdef DEBUG_DEPLEX
+  void planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags, std::string const& save_path);
+
+  void planeSegmentsMapToLabels(std::string const& save_path, cv::Mat_<int32_t> const& cell_map);
+
+  void mergeSegmentsToLabels(std::string const& save_path, std::vector<int32_t> const& merge_labels);
+#endif
+};
+
+const config::Config PlaneExtractor::kDefaultConfig{{{"patchSize", "12"},
+                                                     {"histogramBinsPerCoord", "20"},
+                                                     {"minCosAngleForMerge", "0.93"},
+                                                     {"maxMergeDist", "500"},
+                                                     {"minRegionGrowingCandidateSize", "5"},
+                                                     {"minRegionGrowingCellsActivated", "4"},
+                                                     {"minRegionPlanarityScore", "50"},
+                                                     {"doRefinement", "true"},
+                                                     {"refinementMultiplierCoeff", "15"},
+                                                     {"depthSigmaCoeff", "1.425e-6"},
+                                                     {"depthSigmaMargin", "10"},
+                                                     {"minPtsPerCell", "3"},
+                                                     {"depthDiscontinuityThreshold", "160"},
+                                                     {"maxNumberDepthDiscontinuity", "1"}}};
+
+PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Config config)
     : config_(config),
       nr_horizontal_cells_(image_width / config.getInt("patchSize")),
       nr_vertical_cells_(image_height / config.getInt("patchSize")),
@@ -41,7 +101,16 @@ PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width, config
       grid_plane_seg_map_eroded_(nr_vertical_cells_, nr_horizontal_cells_, uchar(0)),
       seg_map_stacked_(image_height * image_width, 0) {}
 
-Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
+PlaneExtractor::~PlaneExtractor() = default;
+PlaneExtractor::PlaneExtractor(PlaneExtractor&&) noexcept = default;
+PlaneExtractor& PlaneExtractor::operator=(PlaneExtractor&& op) noexcept = default;
+
+PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config)
+    : impl_(new Impl(image_height, image_width, config)) {}
+
+Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) { return impl_->process(pcd_array); }
+
+Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) {
   // 0. Stack array by cell
   Eigen::MatrixXf organized_array(pcd_array.rows(), pcd_array.cols());
   organizeByCell(pcd_array, &organized_array);
@@ -49,8 +118,7 @@ Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
   std::bitset<BITSET_SIZE> planar_flags = findPlanarCells(organized_array);
 #ifdef DEBUG_DEPLEX
   planarCellsToLabels(planar_flags, "dbg_1_planar_cells.csv");
-  std::clog << "[DebugInfo] Planar cell found: " << planar_flags.count()
-            << '\n';
+  std::clog << "[DebugInfo] Planar cell found: " << planar_flags.count() << '\n';
 #endif
   // 2. Histogram initialization
   Histogram hist = initializeHistogram(planar_flags);
@@ -71,10 +139,7 @@ Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
   std::sort(sorted_labels.begin(), sorted_labels.end());
 
   std::clog << "[DebugInfo] Planes number after merge: "
-            << std::distance(
-                   sorted_labels.begin(),
-                   std::unique(sorted_labels.begin(), sorted_labels.end()))
-            << '\n';
+            << std::distance(sorted_labels.begin(), std::unique(sorted_labels.begin(), sorted_labels.end())) << '\n';
 #endif
   // 6. Refinement (optional)
   cv::Mat_ labels(image_height_, image_width_, 0);
@@ -95,7 +160,7 @@ Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) {
   return eigen_labels.reshaped<Eigen::RowMajor>();
 }
 
-void PlaneExtractor::organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out) {
+void PlaneExtractor::Impl::organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out) {
   int32_t patch_size = config_.getInt("patchSize");
   int32_t mxn = image_width_ * image_height_;
   int32_t mxn2 = 2 * mxn;
@@ -117,7 +182,7 @@ void PlaneExtractor::organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::Mat
   }
 }
 
-std::bitset<BITSET_SIZE> PlaneExtractor::findPlanarCells(Eigen::MatrixXf const& pcd_array) {
+std::bitset<BITSET_SIZE> PlaneExtractor::Impl::findPlanarCells(Eigen::MatrixXf const& pcd_array) {
   std::bitset<BITSET_SIZE> planar_flags;
   int32_t cell_width = config_.getInt("patchSize");
   int32_t cell_height = config_.getInt("patchSize");
@@ -133,7 +198,7 @@ std::bitset<BITSET_SIZE> PlaneExtractor::findPlanarCells(Eigen::MatrixXf const& 
   return planar_flags;
 }
 
-Histogram PlaneExtractor::initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags) {
+Histogram PlaneExtractor::Impl::initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags) {
   Eigen::MatrixXd spherical_coord(nr_total_cells_, 2);
   for (size_t cell_id = planar_flags._Find_first(); cell_id != planar_flags.size();
        cell_id = planar_flags._Find_next(cell_id)) {
@@ -146,8 +211,8 @@ Histogram PlaneExtractor::initializeHistogram(std::bitset<BITSET_SIZE> const& pl
   return Histogram{nr_bins_per_coord, spherical_coord, planar_flags};
 }
 
-std::vector<float> PlaneExtractor::computeCellDistTols(Eigen::MatrixXf const& pcd_array,
-                                                       std::bitset<BITSET_SIZE> const& planar_flags) {
+std::vector<float> PlaneExtractor::Impl::computeCellDistTols(Eigen::MatrixXf const& pcd_array,
+                                                             std::bitset<BITSET_SIZE> const& planar_flags) {
   std::vector<float> cell_dist_tols(nr_total_cells_, 0);
   double cos_angle_for_merge = config_.getFloat("minCosAngleForMerge");
   float sin_angle_for_merge = sqrt(1 - pow(cos_angle_for_merge, 2));
@@ -167,7 +232,7 @@ std::vector<float> PlaneExtractor::computeCellDistTols(Eigen::MatrixXf const& pc
   return cell_dist_tols;
 }
 
-std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
+std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegments(
     Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags, std::vector<float> const& cell_dist_tols) {
   std::vector<std::shared_ptr<CellSegment>> plane_segments;
   std::bitset<BITSET_SIZE> unassigned_mask(planar_flags);
@@ -230,7 +295,7 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::createPlaneSegments(
   return plane_segments;
 }
 
-std::vector<int32_t> PlaneExtractor::mergePlanes(std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
+std::vector<int32_t> PlaneExtractor::Impl::mergePlanes(std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
   size_t nr_planes = plane_segments.size();
   // Boolean matrix [nr_planes X nr_planes]
   auto planes_association_mx = getConnectedComponents(nr_planes);
@@ -263,8 +328,8 @@ std::vector<int32_t> PlaneExtractor::mergePlanes(std::vector<std::shared_ptr<Cel
   return plane_merge_labels;
 }
 
-void PlaneExtractor::refinePlanes(std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
-                                  std::vector<int32_t> const& merge_labels, Eigen::MatrixXf const& pcd_array) {
+void PlaneExtractor::Impl::refinePlanes(std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
+                                        std::vector<int32_t> const& merge_labels, Eigen::MatrixXf const& pcd_array) {
   assert(plane_segments.size() == merge_labels.size());
   std::vector<std::shared_ptr<CellSegment>> plane_segments_final;
   cv::Mat mask(nr_vertical_cells_, nr_horizontal_cells_, CV_8U);
@@ -303,7 +368,7 @@ void PlaneExtractor::refinePlanes(std::vector<std::shared_ptr<CellSegment>> cons
   }
 }
 
-cv::Mat PlaneExtractor::toLabels() {
+cv::Mat PlaneExtractor::Impl::toLabels() {
   cv::Mat seg_out(image_height_, image_width_, CV_8U);
   seg_out = cv::Scalar(0);
   int32_t cell_width = config_.getInt("patchSize");
@@ -335,7 +400,7 @@ cv::Mat PlaneExtractor::toLabels() {
   return seg_out;
 }
 
-cv::Mat PlaneExtractor::coarseToLabels(std::vector<int32_t> const& labels) {
+cv::Mat PlaneExtractor::Impl::coarseToLabels(std::vector<int32_t> const& labels) {
   cv::Mat_<int32_t> grid_plane_seg_map_merged;
   grid_plane_seg_map_.copyTo(grid_plane_seg_map_merged);
 
@@ -348,15 +413,15 @@ cv::Mat PlaneExtractor::coarseToLabels(std::vector<int32_t> const& labels) {
   return grid_plane_seg_map_merged;
 }
 
-void PlaneExtractor::cleanArtifacts() {
+void PlaneExtractor::Impl::cleanArtifacts() {
   cell_grid_.resize(nr_total_cells_, nullptr);
   grid_plane_seg_map_ = 0;
   grid_plane_seg_map_eroded_ = 0;
   seg_map_stacked_.resize(image_height_ * image_width_, 0);
 }
 
-void PlaneExtractor::refineCells(const std::shared_ptr<const CellSegment> plane, label_t label, cv::Mat const& mask,
-                                 Eigen::MatrixXf const& pcd_array) {
+void PlaneExtractor::Impl::refineCells(const std::shared_ptr<const CellSegment> plane, label_t label,
+                                       cv::Mat const& mask, Eigen::MatrixXf const& pcd_array) {
   int32_t stacked_cell_id = 0;
   auto refinement_coeff = config_.getFloat("refinementMultiplierCoeff");
   std::vector<float> distances_stacked(image_width_ * image_height_, MAXFLOAT);
@@ -388,9 +453,10 @@ void PlaneExtractor::refineCells(const std::shared_ptr<const CellSegment> plane,
   }
 }
 
-void PlaneExtractor::growSeed(int32_t x, int32_t y, int32_t prev_index, std::bitset<BITSET_SIZE> const& unassigned,
-                              std::bitset<BITSET_SIZE>* activation_map,
-                              std::vector<float> const& cell_dist_tols) const {
+void PlaneExtractor::Impl::growSeed(int32_t x, int32_t y, int32_t prev_index,
+                                    std::bitset<BITSET_SIZE> const& unassigned,
+                                    std::bitset<BITSET_SIZE>* activation_map,
+                                    std::vector<float> const& cell_dist_tols) const {
   int32_t index = x + nr_horizontal_cells_ * y;
   if (index >= nr_total_cells_) throw std::out_of_range("growSeed: Index out of total cell number");
   if (!unassigned[index] || (*activation_map)[index]) {
@@ -418,7 +484,7 @@ void PlaneExtractor::growSeed(int32_t x, int32_t y, int32_t prev_index, std::bit
     growSeed(x, y + 1, index, unassigned, activation_map, cell_dist_tols);
 }
 
-std::vector<std::bitset<BITSET_SIZE>> PlaneExtractor::getConnectedComponents(size_t nr_planes) const {
+std::vector<std::bitset<BITSET_SIZE>> PlaneExtractor::Impl::getConnectedComponents(size_t nr_planes) const {
   std::vector<std::bitset<BITSET_SIZE>> planes_assoc_matrix(nr_planes);
 
   for (int32_t row_id = 0; row_id < grid_plane_seg_map_.rows - 1; ++row_id) {
@@ -448,8 +514,7 @@ std::vector<std::bitset<BITSET_SIZE>> PlaneExtractor::getConnectedComponents(siz
 #ifdef DEBUG_DEPLEX
 
 template <typename T>
-void vectorToCSV(std::vector<std::vector<T>> const& data,
-                 std::string const& out_path, char sep = ',') {
+void vectorToCSV(std::vector<std::vector<T>> const& data, std::string const& out_path, char sep = ',') {
   std::ofstream f_out(out_path);
   for (const auto& row : data) {
     for (auto value = row.begin(); value != row.end(); ++value) {
@@ -462,17 +527,14 @@ void vectorToCSV(std::vector<std::vector<T>> const& data,
   }
 }
 
-void PlaneExtractor::planarCellsToLabels(
-    std::bitset<BITSET_SIZE> const& planar_flags,
-    std::string const& save_path) {
-  std::vector<std::vector<int32_t>> labels(
-      image_height_, std::vector<int32_t>(image_width_, 0));
+void PlaneExtractor::Impl::planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags,
+                                               std::string const& save_path) {
+  std::vector<std::vector<int32_t>> labels(image_height_, std::vector<int32_t>(image_width_, 0));
 
   int32_t cell_width = config_.getInt("patchSize");
   int32_t cell_height = config_.getInt("patchSize");
 
-  for (auto cell_id = planar_flags._Find_first();
-       cell_id != planar_flags.size();
+  for (auto cell_id = planar_flags._Find_first(); cell_id != planar_flags.size();
        cell_id = planar_flags._Find_next(cell_id)) {
     auto cell_row = cell_id / nr_horizontal_cells_;
     auto cell_col = cell_id % nr_horizontal_cells_;
@@ -489,10 +551,8 @@ void PlaneExtractor::planarCellsToLabels(
   vectorToCSV(labels, save_path);
 }
 
-void PlaneExtractor::planeSegmentsMapToLabels(
-    std::string const& save_path, cv::Mat_<int32_t> const& cell_map) {
-  std::vector<std::vector<int32_t>> labels(
-      image_height_, std::vector<int32_t>(image_width_, 0));
+void PlaneExtractor::Impl::planeSegmentsMapToLabels(std::string const& save_path, cv::Mat_<int32_t> const& cell_map) {
+  std::vector<std::vector<int32_t>> labels(image_height_, std::vector<int32_t>(image_width_, 0));
 
   int32_t cell_width = config_.getInt("patchSize");
   int32_t cell_height = config_.getInt("patchSize");
@@ -517,15 +577,14 @@ void PlaneExtractor::planeSegmentsMapToLabels(
   vectorToCSV(labels, save_path);
 }
 
-void PlaneExtractor::mergeSegmentsToLabels(
-    std::string const& save_path, std::vector<int32_t> const& merge_labels) {
+void PlaneExtractor::Impl::mergeSegmentsToLabels(std::string const& save_path,
+                                                 std::vector<int32_t> const& merge_labels) {
   cv::Mat_<int32_t> grid_plane_seg_map_merged;
   grid_plane_seg_map_.copyTo(grid_plane_seg_map_merged);
 
   for (int32_t i = 0; i < merge_labels.size(); ++i) {
     if (merge_labels[i] != i) {
-      grid_plane_seg_map_merged.setTo(merge_labels[i],
-                                      grid_plane_seg_map_merged == i);
+      grid_plane_seg_map_merged.setTo(merge_labels[i], grid_plane_seg_map_merged == i);
     }
   }
 

@@ -1,4 +1,4 @@
-#include "deplex/algorithm/cell_segment_stat.h"
+#include "cell_segment_stat.h"
 
 #include <Eigen/Eigenvalues>
 

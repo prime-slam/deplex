@@ -1,8 +1,9 @@
 #pragma once
 
-#include <Eigen/Core>
 #include <bitset>
 #include <vector>
+
+#include <Eigen/Core>
 
 #ifndef BITSET_SIZE
 #define BITSET_SIZE 65536  // 2^16
