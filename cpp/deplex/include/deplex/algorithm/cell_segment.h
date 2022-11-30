@@ -62,9 +62,9 @@ class CellSegment {
 
   bool isDepthContinuous() const;
 
-  bool _isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
+  bool isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
 
-  bool _isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
+  bool isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
 
   void initStats();
 };

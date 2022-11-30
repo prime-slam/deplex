@@ -84,7 +84,7 @@ bool CellSegment::isValidPoints() const {
   return valid_pts >= valid_pts_threshold;
 }
 
-bool CellSegment::_isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
+bool CellSegment::isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
   float depth_disc_threshold = config_->getFloat("depthDiscontinuityThreshold");
   Eigen::Index middle = cell_z.rows() / 2;
   float prev_depth = cell_z(middle, 0);
@@ -100,7 +100,7 @@ bool CellSegment::_isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
   return disc_count < config_->getInt("maxNumberDepthDiscontinuity");
 }
 
-bool CellSegment::_isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
+bool CellSegment::isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
   float depth_disc_threshold = config_->getFloat("depthDiscontinuityThreshold");
   Eigen::Index middle = cell_z.cols() / 2;
   float prev_depth = cell_z(0, middle);
@@ -119,7 +119,7 @@ bool CellSegment::_isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
 bool CellSegment::isDepthContinuous() const {
   Eigen::MatrixXf cell_z = ptr_pcd_array_->block(offset_, 2, nr_pts_per_cell_, 1).reshaped(cell_height_, cell_width_);
 
-  return _isHorizontalContinuous(cell_z) && _isVerticalContinuous(cell_z);
+  return isHorizontalContinuous(cell_z) && isVerticalContinuous(cell_z);
 }
 
 void CellSegment::initStats() {
