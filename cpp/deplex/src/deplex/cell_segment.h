@@ -1,10 +1,9 @@
 #pragma once
 
-#include <Eigen/Core>
 #include <cstdint>
 
-#include "deplex/algorithm/cell_segment_stat.h"
-#include "deplex/algorithm/config.h"
+#include "cell_segment_stat.h"
+#include "deplex/config.h"
 
 namespace deplex {
 class CellSegment {
