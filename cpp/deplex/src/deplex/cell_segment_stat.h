@@ -7,30 +7,31 @@ class CellSegmentStat {
  public:
   CellSegmentStat();
 
-  CellSegmentStat(Eigen::VectorXf const& X, Eigen::VectorXf const& Y, Eigen::VectorXf const& Z);
+  explicit CellSegmentStat(Eigen::MatrixXf const& points);
 
   CellSegmentStat& operator+=(CellSegmentStat const& other);
 
-  Eigen::Vector3d const& getNormal() const;
+  Eigen::Vector3f const& getNormal() const;
 
-  Eigen::Vector3d const& getMean() const;
+  Eigen::Vector3f const& getMean() const;
 
-  double getScore() const;
+  float getScore() const;
 
-  double getMSE() const;
+  float getMSE() const;
 
-  double getD() const;
+  float getD() const;
 
   void fitPlane();
 
  private:
-  Eigen::Vector3d normal_;
-  Eigen::Vector3d mean_;
-  double d_;
-  double score_;
-  double mse_;
-  float x_, y_, z_, xx_, yy_, zz_, xy_, xz_, yz_;
+  float d_;
+  float score_;
+  float mse_;
   int32_t nr_pts_;
+  Eigen::Vector3f coord_sum_;
+  Eigen::Matrix3f variance_;
+  Eigen::Vector3f mean_;
+  Eigen::Vector3f normal_;
 };
 
 }  // namespace deplex

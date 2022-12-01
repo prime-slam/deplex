@@ -39,7 +39,5 @@ class CellSegment {
   bool isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
 
   bool isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
-
-  void initStats();
 };
 }  // namespace deplex
