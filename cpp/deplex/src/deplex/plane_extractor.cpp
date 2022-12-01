@@ -202,7 +202,7 @@ Histogram PlaneExtractor::Impl::initializeHistogram(std::bitset<BITSET_SIZE> con
   Eigen::MatrixXd spherical_coord(nr_total_cells_, 2);
   for (size_t cell_id = planar_flags._Find_first(); cell_id != planar_flags.size();
        cell_id = planar_flags._Find_next(cell_id)) {
-    Eigen::Vector3d cell_normal = cell_grid_[cell_id]->getStat().getNormal();
+    Eigen::Vector3f cell_normal = cell_grid_[cell_id]->getStat().getNormal();
     double n_proj_norm = sqrt(cell_normal[0] * cell_normal[0] + cell_normal[1] * cell_normal[1]);
     spherical_coord(cell_id, 0) = acos(-cell_normal[2]);
     spherical_coord(cell_id, 1) = atan2(cell_normal[0] / n_proj_norm, cell_normal[1] / n_proj_norm);
@@ -464,9 +464,9 @@ void PlaneExtractor::Impl::growSeed(int32_t x, int32_t y, int32_t prev_index,
   }
 
   double d_1 = cell_grid_[prev_index]->getStat().getD();
-  Eigen::Vector3d normal_1 = cell_grid_[prev_index]->getStat().getNormal();
-  Eigen::Vector3d normal_2 = cell_grid_[index]->getStat().getNormal();
-  Eigen::Vector3d mean_2 = cell_grid_[index]->getStat().getMean();
+  Eigen::Vector3f normal_1 = cell_grid_[prev_index]->getStat().getNormal();
+  Eigen::Vector3f normal_2 = cell_grid_[index]->getStat().getNormal();
+  Eigen::Vector3f mean_2 = cell_grid_[index]->getStat().getMean();
 
   double cos_angle = normal_1.dot(normal_2);
   double merge_dist = pow(normal_1.dot(mean_2) + d_1, 2);
@@ -476,8 +476,7 @@ void PlaneExtractor::Impl::growSeed(int32_t x, int32_t y, int32_t prev_index,
 
   activation_map->set(index);
   if (x > 0) growSeed(x - 1, y, index, unassigned, activation_map, cell_dist_tols);
-  if (x < nr_horizontal_cells_ - 1)
-    growSeed(x + 1, y, index, unassigned, activation_map, cell_dist_tols);
+  if (x < nr_horizontal_cells_ - 1) growSeed(x + 1, y, index, unassigned, activation_map, cell_dist_tols);
   if (y > 0)
     growSeed(x, y - 1, index, unassigned, activation_map, cell_dist_tols);
   if (y < nr_vertical_cells_ - 1)

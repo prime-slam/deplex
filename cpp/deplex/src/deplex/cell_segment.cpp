@@ -21,7 +21,8 @@ CellSegment::CellSegment(int32_t cell_id, int32_t cell_width, int32_t cell_heigh
 
 bool CellSegment::isPlanar() {
   if (isValidPoints() && isDepthContinuous()) {
-    initStats();
+    stats_ = CellSegmentStat(ptr_pcd_array_->block(offset_, 0, nr_pts_per_cell_, 3));
+    stats_.fitPlane();
     float depth_sigma_coeff = config_->getFloat("depthSigmaCoeff");
     float depth_sigma_margin = config_->getFloat("depthSigmaMargin");
     float planar_threshold = depth_sigma_coeff * pow(stats_.getMean()[2], 2) + depth_sigma_margin;
@@ -74,14 +75,6 @@ bool CellSegment::isDepthContinuous() const {
   Eigen::MatrixXf cell_z = ptr_pcd_array_->block(offset_, 2, nr_pts_per_cell_, 1).reshaped(cell_height_, cell_width_);
 
   return isHorizontalContinuous(cell_z) && isVerticalContinuous(cell_z);
-}
-
-void CellSegment::initStats() {
-  Eigen::VectorXf cell_x = ptr_pcd_array_->block(offset_, 0, nr_pts_per_cell_, 1);
-  Eigen::VectorXf cell_y = ptr_pcd_array_->block(offset_, 1, nr_pts_per_cell_, 1);
-  Eigen::VectorXf cell_z = ptr_pcd_array_->block(offset_, 2, nr_pts_per_cell_, 1);
-
-  stats_ = CellSegmentStat(cell_x, cell_y, cell_z);
 }
 
 void CellSegment::calculateStats() { stats_.fitPlane(); }
