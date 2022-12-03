@@ -2,6 +2,7 @@
 #include <deplex/utils/image_to_cloud.h>
 
 #include <filesystem>
+#include <iostream>
 
 int main() {
   std::filesystem::path data_dir =
@@ -20,6 +21,7 @@ int main() {
       deplex::utils::readImage(image_path, intrinsics_path);
 
   auto labels = algorithm.process(pcd_array);
+  std::cout << "Found planes: " << labels.maxCoeff() << '\n';
 
   return 0;
 }

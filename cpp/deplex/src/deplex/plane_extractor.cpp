@@ -3,6 +3,11 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc.hpp>
 
+#ifdef DEBUG_DEPLEX
+#include <fstream>
+#include <iostream>
+#endif
+
 #include "cell_segment.h"
 #include "histogram.h"
 
@@ -47,17 +52,9 @@ class PlaneExtractor::Impl {
 
   std::vector<int32_t> mergePlanes(std::vector<std::shared_ptr<CellSegment>>& plane_segments);
 
-  void refinePlanes(std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
-                    std::vector<int32_t> const& merge_labels, Eigen::MatrixXf const& pcd_array);
-
-  cv::Mat toLabels();
-
   cv::Mat coarseToLabels(std::vector<int32_t> const& labels);
 
   void cleanArtifacts();
-
-  void refineCells(std::shared_ptr<const CellSegment> const plane, label_t label, cv::Mat const& mask,
-                   Eigen::MatrixXf const& pcd_array);
 
   void growSeed(int32_t x, int32_t y, int32_t prev_index, std::bitset<BITSET_SIZE> const& unassigned,
                 std::bitset<BITSET_SIZE>* activation_map, std::vector<float> const& cell_dist_tols) const;
@@ -141,14 +138,8 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) 
   std::clog << "[DebugInfo] Planes number after merge: "
             << std::distance(sorted_labels.begin(), std::unique(sorted_labels.begin(), sorted_labels.end())) << '\n';
 #endif
-  // 6. Refinement (optional)
   cv::Mat_ labels(image_height_, image_width_, 0);
-  if (config_.getBool("doRefinement")) {
-    refinePlanes(plane_segments, merge_labels, organized_array);
-    labels = toLabels();
-  } else {
-    labels = coarseToLabels(merge_labels);
-  }
+  labels = coarseToLabels(merge_labels);
 #ifdef DEBUG_DEPLEX
   std::ofstream of("dbg_4_labels.csv");
   of << cv::format(labels, cv::Formatter::FMT_CSV);
@@ -328,78 +319,6 @@ std::vector<int32_t> PlaneExtractor::Impl::mergePlanes(std::vector<std::shared_p
   return plane_merge_labels;
 }
 
-void PlaneExtractor::Impl::refinePlanes(std::vector<std::shared_ptr<CellSegment>> const& plane_segments,
-                                        std::vector<int32_t> const& merge_labels, Eigen::MatrixXf const& pcd_array) {
-  assert(plane_segments.size() == merge_labels.size());
-  std::vector<std::shared_ptr<CellSegment>> plane_segments_final;
-  cv::Mat mask(nr_vertical_cells_, nr_horizontal_cells_, CV_8U);
-  cv::Mat mask_eroded(nr_vertical_cells_, nr_horizontal_cells_, CV_8U);
-  //  cv::Mat mask_square_eroded;
-  cv::Mat mask_dilated(nr_vertical_cells_, nr_horizontal_cells_, CV_8U);
-  cv::Mat mask_square_kernel = cv::Mat::ones(3, 3, CV_8U);
-  cv::Mat mask_cross_kernel = cv::Mat::ones(3, 3, CV_8U);
-  mask_cross_kernel.at<uchar>(0, 0) = 0;
-  mask_cross_kernel.at<uchar>(2, 2) = 0;
-  mask_cross_kernel.at<uchar>(0, 2) = 0;
-  mask_cross_kernel.at<uchar>(2, 0) = 0;
-  for (int32_t i = 0; i < plane_segments.size(); ++i) {
-    mask = cv::Scalar(0);
-    if (i != merge_labels[i]) continue;
-    for (int32_t j = i; j < plane_segments.size(); ++j) {
-      if (merge_labels[j] == merge_labels[i]) {
-        // TODO: Check ... = j
-        mask.setTo(1, grid_plane_seg_map_ == j + 1);
-      }
-    }
-    cv::erode(mask, mask_eroded, mask_cross_kernel);
-    double min, max;
-    cv::minMaxLoc(mask_eroded, &min, &max);
-
-    // Ignore plane if completely eroded
-    if (max == 0) {
-      continue;
-    }
-    plane_segments_final.push_back(plane_segments[i]);
-
-    cv::dilate(mask, mask_dilated, mask_square_kernel);
-    cv::Mat mask_diff = mask_dilated - mask_eroded;
-    grid_plane_seg_map_eroded_.setTo(plane_segments_final.size(), mask_eroded > 0);
-    refineCells(plane_segments[i], plane_segments_final.size(), mask_diff, pcd_array);
-  }
-}
-
-cv::Mat PlaneExtractor::Impl::toLabels() {
-  cv::Mat seg_out(image_height_, image_width_, CV_8U);
-  seg_out = cv::Scalar(0);
-  int32_t cell_width = config_.getInt("patchSize");
-  int32_t cell_height = config_.getInt("patchSize");
-  for (int cell_r = 0; cell_r < nr_vertical_cells_; cell_r++) {
-    auto grid_plane_eroded_row_ptr = grid_plane_seg_map_eroded_.ptr<label_t>(cell_r);
-    int r_offset = cell_r * cell_height;
-    int r_limit = r_offset + cell_height;
-    for (int cell_c = 0; cell_c < nr_horizontal_cells_; cell_c++) {
-      int c_offset = cell_c * cell_width;
-      int c_limit = c_offset + cell_width;
-      if (grid_plane_eroded_row_ptr[cell_c] > 0) {
-        seg_out(cv::Rect(c_offset, r_offset, cell_width, cell_height)).setTo(grid_plane_eroded_row_ptr[cell_c]);
-      } else {
-        // Set cell pixels one by one
-        auto idx = nr_pts_per_cell_ * cell_r * nr_horizontal_cells_ + nr_pts_per_cell_ * cell_c;
-        for (int r = r_offset; r < r_limit; r++) {
-          auto row_ptr = seg_out.ptr<uchar>(r);
-          for (int c = c_offset; c < c_limit; c++) {
-            if (seg_map_stacked_[idx] > 0) {
-              row_ptr[c] = seg_map_stacked_[idx];
-            }
-            idx++;
-          }
-        }
-      }
-    }
-  }
-  return seg_out;
-}
-
 cv::Mat PlaneExtractor::Impl::coarseToLabels(std::vector<int32_t> const& labels) {
   cv::Mat_<int32_t> grid_plane_seg_map_merged;
   grid_plane_seg_map_.copyTo(grid_plane_seg_map_merged);
@@ -418,39 +337,6 @@ void PlaneExtractor::Impl::cleanArtifacts() {
   grid_plane_seg_map_ = 0;
   grid_plane_seg_map_eroded_ = 0;
   seg_map_stacked_.resize(image_height_ * image_width_, 0);
-}
-
-void PlaneExtractor::Impl::refineCells(const std::shared_ptr<const CellSegment> plane, label_t label,
-                                       cv::Mat const& mask, Eigen::MatrixXf const& pcd_array) {
-  int32_t stacked_cell_id = 0;
-  auto refinement_coeff = config_.getFloat("refinementMultiplierCoeff");
-  std::vector<float> distances_stacked(image_width_ * image_height_, MAXFLOAT);
-  for (int32_t row_id = 0; row_id < nr_vertical_cells_; ++row_id) {
-    auto row_ptr = mask.ptr<uchar>(row_id);
-    for (int32_t col_id = 0; col_id < nr_horizontal_cells_; ++col_id) {
-      if (!row_ptr[col_id]) {
-        ++stacked_cell_id;
-        continue;
-      }
-      int32_t offset = stacked_cell_id * nr_pts_per_cell_;
-      int32_t next_offset = offset + nr_pts_per_cell_;
-      auto max_dist = refinement_coeff * plane->getStat().getMSE();
-      Eigen::ArrayXf distances_cell_stacked =
-          pcd_array.block(offset, 0, nr_pts_per_cell_, 1).array() * plane->getStat().getNormal()[0] +
-          pcd_array.block(offset, 1, nr_pts_per_cell_, 1).array() * plane->getStat().getNormal()[1] +
-          pcd_array.block(offset, 2, nr_pts_per_cell_, 1).array() * plane->getStat().getNormal()[2] +
-          plane->getStat().getD();
-
-      for (int pt = offset, j = 0; pt < next_offset; ++j, ++pt) {
-        auto dist = powf(distances_cell_stacked(j), 2);
-        if (dist < max_dist && dist < distances_stacked[pt]) {
-          distances_stacked[pt] = dist;
-          seg_map_stacked_[pt] = label;
-        }
-      }
-      ++stacked_cell_id;
-    }
-  }
 }
 
 void PlaneExtractor::Impl::growSeed(int32_t x, int32_t y, int32_t prev_index,
