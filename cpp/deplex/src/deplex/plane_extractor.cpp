@@ -191,16 +191,13 @@ std::bitset<BITSET_SIZE> PlaneExtractor::Impl::findPlanarCells(Eigen::MatrixXf c
 }
 
 Histogram PlaneExtractor::Impl::initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags) {
-  Eigen::MatrixXd spherical_coord(nr_total_cells_, 2);
+  Eigen::MatrixXf normals = Eigen::MatrixXf::Zero(nr_total_cells_, 3);
   for (size_t cell_id = planar_flags._Find_first(); cell_id != planar_flags.size();
        cell_id = planar_flags._Find_next(cell_id)) {
-    Eigen::Vector3f cell_normal = cell_grid_[cell_id]->getStat().getNormal();
-    double n_proj_norm = sqrt(cell_normal[0] * cell_normal[0] + cell_normal[1] * cell_normal[1]);
-    spherical_coord(cell_id, 0) = acos(-cell_normal[2]);
-    spherical_coord(cell_id, 1) = atan2(cell_normal[0] / n_proj_norm, cell_normal[1] / n_proj_norm);
+    normals.row(cell_id) = cell_grid_[cell_id]->getStat().getNormal();
   }
   int nr_bins_per_coord = config_.getInt("histogramBinsPerCoord");
-  return Histogram{nr_bins_per_coord, spherical_coord, planar_flags};
+  return Histogram{nr_bins_per_coord, normals, planar_flags};
 }
 
 std::vector<float> PlaneExtractor::Impl::computeCellDistTols(Eigen::MatrixXf const& pcd_array,
