@@ -4,6 +4,7 @@ project(deplex LANGUAGES CXX DESCRIPTION "Library for Depth Plane Extraction")
 
 option(BUILD_EXAMPLES "Build C++ examples of deplex usage" ON)
 option(BUILD_PYTHON "Build Python bindings" ON)
+option(DEBUG_DEPLEX "Additional verbosity and results by stage" OFF)
 
 add_subdirectory(external)
 add_subdirectory(cpp)

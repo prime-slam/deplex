@@ -27,6 +27,10 @@ add_library(${TARGET_NAME} SHARED ${SRC_FILES})
 #####################################
 # Define Target Properties
 #####################################
+if (DEBUG_DEPLEX)
+    target_compile_definitions(${TARGET_NAME} PRIVATE DEBUG_DEPLEX)
+endif()
+
 target_include_directories(
     ${TARGET_NAME}
     SYSTEM
