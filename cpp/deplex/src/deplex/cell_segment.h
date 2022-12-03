@@ -8,12 +8,7 @@
 namespace deplex {
 class CellSegment {
  public:
-  CellSegment(int32_t cell_id, int32_t cell_width, int32_t cell_height, Eigen::MatrixXf const& pcd_array,
-              config::Config const& config);
-
-  CellSegment(CellSegment const& other) = default;
-
-  CellSegment& operator=(CellSegment const& other) = default;
+  CellSegment(Eigen::MatrixXf const& cell_points, config::Config const& config);
 
   CellSegment& operator+=(CellSegment const& other);
 
@@ -21,23 +16,21 @@ class CellSegment {
 
   void calculateStats();
 
-  bool isPlanar();
+  bool isPlanar() const;
 
  private:
   CellSegmentStat stats_;
-  Eigen::MatrixXf const* const ptr_pcd_array_;
   config::Config const* const config_;
-  int32_t nr_pts_per_cell_;
-  int32_t cell_width_;
-  int32_t cell_height_;
-  int32_t offset_;
+  bool is_planar_;
 
-  bool isValidPoints() const;
+  bool isValidPoints(Eigen::MatrixXf const& cell_points) const;
 
-  bool isDepthContinuous() const;
+  bool isDepthContinuous(Eigen::MatrixXf const& cell_points) const;
 
   bool isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const;
 
   bool isVerticalContinuous(Eigen::MatrixXf const& cell_z) const;
+
+  bool isFittingMSE() const;
 };
 }  // namespace deplex

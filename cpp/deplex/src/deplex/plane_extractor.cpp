@@ -180,8 +180,9 @@ std::bitset<BITSET_SIZE> PlaneExtractor::Impl::findPlanarCells(Eigen::MatrixXf c
   int32_t stacked_cell_id = 0;
   for (Eigen::Index cell_r = 0; cell_r < nr_vertical_cells_; ++cell_r) {
     for (Eigen::Index cell_h = 0; cell_h < nr_horizontal_cells_; ++cell_h) {
-      cell_grid_[stacked_cell_id] =
-          std::make_shared<CellSegment>(stacked_cell_id, cell_width, cell_height, pcd_array, config_);
+      int32_t offset = stacked_cell_id * cell_width * cell_height;
+      Eigen::MatrixXf cell_points = pcd_array.block(offset, 0, cell_width * cell_height, 3);
+      cell_grid_[stacked_cell_id] = std::make_shared<CellSegment>(cell_points, config_);
       planar_flags[stacked_cell_id] = cell_grid_[stacked_cell_id]->isPlanar();
       ++stacked_cell_id;
     }

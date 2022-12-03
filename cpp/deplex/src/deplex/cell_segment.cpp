@@ -3,6 +3,14 @@
 #include <Eigen/Eigenvalues>
 
 namespace deplex {
+CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config const& config)
+    : config_(&config), is_planar_(false) {
+  bool is_valid = isValidPoints(cell_points) && isDepthContinuous(cell_points);
+  if (!is_valid) return;
+  stats_ = CellSegmentStat(cell_points);
+  is_planar_ = isFittingMSE();
+}
+
 CellSegment& CellSegment::operator+=(CellSegment const& other) {
   stats_ += other.stats_;
   return *this;
@@ -10,32 +18,13 @@ CellSegment& CellSegment::operator+=(CellSegment const& other) {
 
 CellSegmentStat const& CellSegment::getStat() const { return stats_; };
 
-CellSegment::CellSegment(int32_t cell_id, int32_t cell_width, int32_t cell_height, Eigen::MatrixXf const& pcd_array,
-                         config::Config const& config)
-    : ptr_pcd_array_(&pcd_array),
-      config_(&config),
-      nr_pts_per_cell_(cell_width * cell_height),
-      cell_width_(cell_width),
-      cell_height_(cell_height),
-      offset_(cell_id * cell_width * cell_height) {}
+bool CellSegment::isPlanar() const { return is_planar_; }
 
-bool CellSegment::isPlanar() {
-  if (isValidPoints() && isDepthContinuous()) {
-    stats_ = CellSegmentStat(ptr_pcd_array_->block(offset_, 0, nr_pts_per_cell_, 3));
-    stats_.fitPlane();
-    float depth_sigma_coeff = config_->getFloat("depthSigmaCoeff");
-    float depth_sigma_margin = config_->getFloat("depthSigmaMargin");
-    float planar_threshold = depth_sigma_coeff * pow(stats_.getMean()[2], 2) + depth_sigma_margin;
-    return stats_.getMSE() <= pow(planar_threshold, 2);
-  }
-  return false;
-}
+void CellSegment::calculateStats() { stats_.fitPlane(); }
 
-bool CellSegment::isValidPoints() const {
-  Eigen::VectorXf cell_z = ptr_pcd_array_->block(offset_, 2, nr_pts_per_cell_, 1);
-
-  Eigen::Index valid_pts_threshold = nr_pts_per_cell_ / config_->getInt("minPtsPerCell");
-  Eigen::Index valid_pts = (cell_z.array() > 0).count();
+bool CellSegment::isValidPoints(Eigen::MatrixXf const& cell_points) const {
+  Eigen::Index valid_pts_threshold = cell_points.size() / config_->getInt("minPtsPerCell");
+  Eigen::Index valid_pts = (cell_points.col(2).array() > 0).count();
   return valid_pts >= valid_pts_threshold;
 }
 
@@ -71,11 +60,19 @@ bool CellSegment::isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
   return disc_count < config_->getInt("maxNumberDepthDiscontinuity");
 }
 
-bool CellSegment::isDepthContinuous() const {
-  Eigen::MatrixXf cell_z = ptr_pcd_array_->block(offset_, 2, nr_pts_per_cell_, 1).reshaped(cell_height_, cell_width_);
+bool CellSegment::isDepthContinuous(Eigen::MatrixXf const& cell_points) const {
+  auto cell_height = config_->getInt("patchSize");
+  auto cell_width = config_->getInt("patchSize");
+  Eigen::MatrixXf cell_z = cell_points.col(2).reshaped(cell_height, cell_width);
 
   return isHorizontalContinuous(cell_z) && isVerticalContinuous(cell_z);
 }
 
-void CellSegment::calculateStats() { stats_.fitPlane(); }
+bool CellSegment::isFittingMSE() const {
+  if (stats_.getMSE() < 0) return false;
+  float depth_sigma_coeff = config_->getFloat("depthSigmaCoeff");
+  float depth_sigma_margin = config_->getFloat("depthSigmaMargin");
+  float planar_threshold = depth_sigma_coeff * pow(stats_.getMean()[2], 2) + depth_sigma_margin;
+  return stats_.getMSE() <= pow(planar_threshold, 2);
+}
 }  // namespace deplex

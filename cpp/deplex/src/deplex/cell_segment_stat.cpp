@@ -9,7 +9,9 @@ CellSegmentStat::CellSegmentStat(Eigen::MatrixXf const& points)
     : nr_pts_(points.rows()),
       coord_sum_(points.colwise().sum()),
       variance_(points.transpose() * points),
-      mean_(coord_sum_ / nr_pts_) {}
+      mean_(coord_sum_ / nr_pts_) {
+  fitPlane();
+}
 
 CellSegmentStat& CellSegmentStat::operator+=(CellSegmentStat const& other) {
   nr_pts_ += other.nr_pts_;
