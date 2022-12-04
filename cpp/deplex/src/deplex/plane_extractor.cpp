@@ -1,7 +1,7 @@
 #include "deplex/plane_extractor.h"
 
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/imgproc.hpp>
+#include <algorithm>
+#include <numeric>
 
 #ifdef DEBUG_DEPLEX
 #include <fstream>
@@ -17,7 +17,7 @@
 
 namespace deplex {
 
-typedef uchar label_t;
+typedef u_char label_t;
 
 class PlaneExtractor::Impl {
  public:
@@ -34,9 +34,7 @@ class PlaneExtractor::Impl {
   int32_t image_height_;
   int32_t image_width_;
   std::vector<std::shared_ptr<CellSegment>> cell_grid_;
-  cv::Mat_<int32_t> grid_plane_seg_map_;
-  cv::Mat_<label_t> grid_plane_seg_map_eroded_;
-  std::vector<label_t> seg_map_stacked_;
+  Eigen::MatrixXi labels_map_;
   void organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out);
 
   std::bitset<BITSET_SIZE> findPlanarCells(Eigen::MatrixXf const& pcd_array);
@@ -50,9 +48,9 @@ class PlaneExtractor::Impl {
                                                                 std::bitset<BITSET_SIZE> const& planar_flags,
                                                                 std::vector<float> const& cell_dist_tols);
 
-  std::vector<int32_t> mergePlanes(std::vector<std::shared_ptr<CellSegment>>& plane_segments);
+  std::vector<int32_t> findMergeLabels(std::vector<std::shared_ptr<CellSegment>>& plane_segments);
 
-  cv::Mat coarseToLabels(std::vector<int32_t> const& labels);
+  Eigen::VectorXi toImageLabels(std::vector<int32_t> const& merge_labels);
 
   void cleanArtifacts();
 
@@ -63,10 +61,6 @@ class PlaneExtractor::Impl {
 
 #ifdef DEBUG_DEPLEX
   void planarCellsToLabels(std::bitset<BITSET_SIZE> const& planar_flags, std::string const& save_path);
-
-  void planeSegmentsMapToLabels(std::string const& save_path, cv::Mat_<int32_t> const& cell_map);
-
-  void mergeSegmentsToLabels(std::string const& save_path, std::vector<int32_t> const& merge_labels);
 #endif
 };
 
@@ -94,9 +88,7 @@ PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Co
       image_height_(image_height),
       image_width_(image_width),
       cell_grid_(nr_total_cells_, nullptr),
-      grid_plane_seg_map_(nr_vertical_cells_, nr_horizontal_cells_, 0),
-      grid_plane_seg_map_eroded_(nr_vertical_cells_, nr_horizontal_cells_, uchar(0)),
-      seg_map_stacked_(image_height * image_width, 0) {}
+      labels_map_(Eigen::MatrixXi::Zero(nr_vertical_cells_, nr_horizontal_cells_)) {}
 
 PlaneExtractor::~PlaneExtractor() = default;
 PlaneExtractor::PlaneExtractor(PlaneExtractor&&) noexcept = default;
@@ -124,31 +116,27 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) 
   // 4. Region growing
   auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
 #ifdef DEBUG_DEPLEX
-  planeSegmentsMapToLabels("dbg_2_plane_segments_raw.csv", grid_plane_seg_map_);
-  std::clog << "[DebugInfo] Plane segments found: " << plane_segments.size()
-            << '\n';
+  std::clog << "[DebugInfo] Plane segments found: " << plane_segments.size() - 1 << '\n';
 #endif
   // 5. Merge planes
-  std::vector<int32_t> merge_labels = mergePlanes(plane_segments);
+  std::vector<int32_t> merge_labels = findMergeLabels(plane_segments);
 #ifdef DEBUG_DEPLEX
-  mergeSegmentsToLabels("dbg_3_plane_segments_merged.csv", merge_labels);
   std::vector<int32_t> sorted_labels(merge_labels);
   std::sort(sorted_labels.begin(), sorted_labels.end());
 
   std::clog << "[DebugInfo] Planes number after merge: "
-            << std::distance(sorted_labels.begin(), std::unique(sorted_labels.begin(), sorted_labels.end())) << '\n';
+            << std::distance(sorted_labels.begin(), std::unique(sorted_labels.begin(), sorted_labels.end())) - 1
+            << '\n';
 #endif
-  cv::Mat_ labels(image_height_, image_width_, 0);
-  labels = coarseToLabels(merge_labels);
+  Eigen::VectorXi labels = toImageLabels(merge_labels);
 #ifdef DEBUG_DEPLEX
-  std::ofstream of("dbg_4_labels.csv");
-  of << cv::format(labels, cv::Formatter::FMT_CSV);
+  std::ofstream of("dbg_3_labels.csv");
+  of << labels.reshaped<Eigen::RowMajor>(image_height_, image_width_)
+            .format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n"));
 #endif
   // 7. Cleanup
   cleanArtifacts();
-  Eigen::MatrixXi eigen_labels;
-  cv::cv2eigen(labels, eigen_labels);
-  return eigen_labels.reshaped<Eigen::RowMajor>();
+  return labels;
 }
 
 void PlaneExtractor::Impl::organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out) {
@@ -268,12 +256,12 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegme
       plane_segments.push_back(new_segment);
       auto nr_curr_planes = static_cast<int32_t>(plane_segments.size());
       // Mark cells
+      // TODO: Effective assigning by mask?
       int stacked_cell_id = 0;
       for (int32_t row_id = 0; row_id < nr_vertical_cells_; ++row_id) {
-        auto row = grid_plane_seg_map_.ptr<int32_t>(row_id);
         for (int32_t col_id = 0; col_id < nr_horizontal_cells_; ++col_id) {
           if (activation_map[stacked_cell_id]) {
-            row[col_id] = nr_curr_planes;
+            labels_map_.row(row_id)[col_id] = nr_curr_planes;
           }
           ++stacked_cell_id;
         }
@@ -284,7 +272,7 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegme
   return plane_segments;
 }
 
-std::vector<int32_t> PlaneExtractor::Impl::mergePlanes(std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
+std::vector<int32_t> PlaneExtractor::Impl::findMergeLabels(std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
   size_t nr_planes = plane_segments.size();
   // Boolean matrix [nr_planes X nr_planes]
   auto planes_association_mx = getConnectedComponents(nr_planes);
@@ -317,24 +305,9 @@ std::vector<int32_t> PlaneExtractor::Impl::mergePlanes(std::vector<std::shared_p
   return plane_merge_labels;
 }
 
-cv::Mat PlaneExtractor::Impl::coarseToLabels(std::vector<int32_t> const& labels) {
-  cv::Mat_<int32_t> grid_plane_seg_map_merged;
-  grid_plane_seg_map_.copyTo(grid_plane_seg_map_merged);
-
-  for (int32_t i = 0; i < labels.size(); ++i) {
-    if (labels[i] != i) {
-      grid_plane_seg_map_merged.setTo(labels[i], grid_plane_seg_map_merged == i);
-    }
-  }
-
-  return grid_plane_seg_map_merged;
-}
-
 void PlaneExtractor::Impl::cleanArtifacts() {
   cell_grid_.resize(nr_total_cells_, nullptr);
-  grid_plane_seg_map_ = 0;
-  grid_plane_seg_map_eroded_ = 0;
-  seg_map_stacked_.resize(image_height_ * image_width_, 0);
+  labels_map_.setZero();
 }
 
 void PlaneExtractor::Impl::growSeed(int32_t x, int32_t y, int32_t prev_index,
@@ -370,10 +343,10 @@ void PlaneExtractor::Impl::growSeed(int32_t x, int32_t y, int32_t prev_index,
 std::vector<std::bitset<BITSET_SIZE>> PlaneExtractor::Impl::getConnectedComponents(size_t nr_planes) const {
   std::vector<std::bitset<BITSET_SIZE>> planes_assoc_matrix(nr_planes);
 
-  for (int32_t row_id = 0; row_id < grid_plane_seg_map_.rows - 1; ++row_id) {
-    auto row = grid_plane_seg_map_.ptr<int>(row_id);
-    auto next_row = grid_plane_seg_map_.ptr<int>(row_id + 1);
-    for (int32_t col_id = 0; col_id < grid_plane_seg_map_.cols - 1; ++col_id) {
+  for (int32_t row_id = 0; row_id < labels_map_.rows() - 1; ++row_id) {
+    auto row = labels_map_.row(row_id);
+    auto next_row = labels_map_.row(row_id + 1);
+    for (int32_t col_id = 0; col_id < labels_map_.cols() - 1; ++col_id) {
       auto plane_id = row[col_id];
       if (plane_id > 0) {
         if (row[col_id + 1] > 0 && plane_id != row[col_id + 1])
@@ -385,13 +358,37 @@ std::vector<std::bitset<BITSET_SIZE>> PlaneExtractor::Impl::getConnectedComponen
   }
   for (int32_t row_id = 0; row_id < planes_assoc_matrix.size(); ++row_id) {
     for (int32_t col_id = 0; col_id < planes_assoc_matrix.size(); ++col_id) {
-      planes_assoc_matrix[row_id][col_id] =
-          planes_assoc_matrix[row_id][col_id] ||
-          planes_assoc_matrix[col_id][row_id];
+      planes_assoc_matrix[row_id][col_id] = planes_assoc_matrix[row_id][col_id] || planes_assoc_matrix[col_id][row_id];
     }
   }
 
   return planes_assoc_matrix;
+}
+
+Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& merge_labels) {
+  Eigen::MatrixXi labels(Eigen::MatrixXi::Zero(image_height_, image_width_));
+
+  int32_t cell_width = config_.getInt("patchSize");
+  int32_t cell_height = config_.getInt("patchSize");
+
+  int32_t stacked_cell_id = 0;
+  for (auto row = 0; row < labels_map_.rows(); ++row) {
+    for (auto col = 0; col < labels_map_.cols(); ++col) {
+      auto cell_row = stacked_cell_id / nr_horizontal_cells_;
+      auto cell_col = stacked_cell_id % nr_horizontal_cells_;
+      // Fill cell with label
+      auto label_row = cell_row * cell_height;
+      auto label_col = cell_col * cell_width;
+      for (auto i = label_row; i < label_row + cell_height; ++i) {
+        for (auto j = label_col; j < label_col + cell_width; ++j) {
+          labels.row(i)[j] = merge_labels[labels_map_.row(row)[col]];
+        }
+      }
+      ++stacked_cell_id;
+    }
+  }
+
+  return labels.reshaped<Eigen::RowMajor>();
 }
 
 #ifdef DEBUG_DEPLEX
@@ -432,46 +429,6 @@ void PlaneExtractor::Impl::planarCellsToLabels(std::bitset<BITSET_SIZE> const& p
   }
 
   vectorToCSV(labels, save_path);
-}
-
-void PlaneExtractor::Impl::planeSegmentsMapToLabels(std::string const& save_path, cv::Mat_<int32_t> const& cell_map) {
-  std::vector<std::vector<int32_t>> labels(image_height_, std::vector<int32_t>(image_width_, 0));
-
-  int32_t cell_width = config_.getInt("patchSize");
-  int32_t cell_height = config_.getInt("patchSize");
-
-  int32_t stacked_cell_id = 0;
-  for (auto row = 0; row < cell_map.rows; ++row) {
-    for (auto col = 0; col < cell_map.cols; ++col) {
-      auto cell_row = stacked_cell_id / nr_horizontal_cells_;
-      auto cell_col = stacked_cell_id % nr_horizontal_cells_;
-      // Fill cell with label
-      auto label_row = cell_row * cell_height;
-      auto label_col = cell_col * cell_width;
-      for (auto i = label_row; i < label_row + cell_height; ++i) {
-        for (auto j = label_col; j < label_col + cell_width; ++j) {
-          labels[i][j] = cell_map[row][col];
-        }
-      }
-      ++stacked_cell_id;
-    }
-  }
-
-  vectorToCSV(labels, save_path);
-}
-
-void PlaneExtractor::Impl::mergeSegmentsToLabels(std::string const& save_path,
-                                                 std::vector<int32_t> const& merge_labels) {
-  cv::Mat_<int32_t> grid_plane_seg_map_merged;
-  grid_plane_seg_map_.copyTo(grid_plane_seg_map_merged);
-
-  for (int32_t i = 0; i < merge_labels.size(); ++i) {
-    if (merge_labels[i] != i) {
-      grid_plane_seg_map_merged.setTo(merge_labels[i], grid_plane_seg_map_merged == i);
-    }
-  }
-
-  planeSegmentsMapToLabels(save_path, grid_plane_seg_map_merged);
 }
 #endif
 
