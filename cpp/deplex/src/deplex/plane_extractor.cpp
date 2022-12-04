@@ -48,7 +48,7 @@ class PlaneExtractor::Impl {
                                                                 std::bitset<BITSET_SIZE> const& planar_flags,
                                                                 std::vector<float> const& cell_dist_tols);
 
-  std::vector<int32_t> findMergeLabels(std::vector<std::shared_ptr<CellSegment>>& plane_segments);
+  std::vector<int32_t> findMergedLabels(std::vector<std::shared_ptr<CellSegment>>& plane_segments);
 
   Eigen::VectorXi toImageLabels(std::vector<int32_t> const& merge_labels);
 
@@ -119,7 +119,7 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) 
   std::clog << "[DebugInfo] Plane segments found: " << plane_segments.size() - 1 << '\n';
 #endif
   // 5. Merge planes
-  std::vector<int32_t> merge_labels = findMergeLabels(plane_segments);
+  std::vector<int32_t> merge_labels = findMergedLabels(plane_segments);
 #ifdef DEBUG_DEPLEX
   std::vector<int32_t> sorted_labels(merge_labels);
   std::sort(sorted_labels.begin(), sorted_labels.end());
@@ -272,7 +272,7 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegme
   return plane_segments;
 }
 
-std::vector<int32_t> PlaneExtractor::Impl::findMergeLabels(std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
+std::vector<int32_t> PlaneExtractor::Impl::findMergedLabels(std::vector<std::shared_ptr<CellSegment>>& plane_segments) {
   size_t nr_planes = plane_segments.size();
   // Boolean matrix [nr_planes X nr_planes]
   auto planes_association_mx = getConnectedComponents(nr_planes);

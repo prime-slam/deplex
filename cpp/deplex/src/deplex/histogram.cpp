@@ -18,10 +18,10 @@ Histogram::Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals, 
     double polar_angle = acos(-normal[2]);
     double azimuth_angle = atan2(normal[0] / n_proj_norm, normal[1] / n_proj_norm);
 
-    int32_t X_q = static_cast<int>((nr_bins_per_coord_ - 1) * (polar_angle - min_X) / (max_X - min_X));
+    auto X_q = static_cast<int32_t>((nr_bins_per_coord_ - 1) * (polar_angle - min_X) / (max_X - min_X));
     int32_t Y_q = 0;
     if (X_q > 0) {
-      Y_q = static_cast<int>((nr_bins_per_coord_ - 1) * (azimuth_angle - min_Y) / (max_Y - min_Y));
+      Y_q = static_cast<int32_t>((nr_bins_per_coord_ - 1) * (azimuth_angle - min_Y) / (max_Y - min_Y));
     }
     int32_t bin = Y_q * nr_bins_per_coord_ + X_q;
     bins_[i] = bin;
