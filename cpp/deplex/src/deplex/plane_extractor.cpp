@@ -381,7 +381,8 @@ Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& 
       auto label_col = cell_col * cell_width;
       for (auto i = label_row; i < label_row + cell_height; ++i) {
         for (auto j = label_col; j < label_col + cell_width; ++j) {
-          labels.row(i)[j] = merge_labels[labels_map_.row(row)[col]];
+          auto label = labels_map_.row(row)[col];
+          labels.row(i)[j] = (label == 0 ? 0 : merge_labels[label - 1] + 1);
         }
       }
       ++stacked_cell_id;
