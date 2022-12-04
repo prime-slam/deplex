@@ -3,12 +3,18 @@
 #include <Eigen/Eigenvalues>
 
 namespace deplex {
-CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config const& config)
-    : config_(&config), is_planar_(false) {
-  bool is_valid = isValidPoints(cell_points) && isDepthContinuous(cell_points);
+CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config const& config) : is_planar_(false) {
+  size_t valid_pts_threshold = cell_points.size() / config.getInt("minPtsPerCell");
+  int32_t cell_width = config.getInt("patchSize");
+  int32_t cell_height = config.getInt("patchSize");
+
+  bool is_valid =
+      hasValidPoints(cell_points, valid_pts_threshold) &&
+      isDepthContinuous(cell_points, cell_width, cell_height, config.getFloat("depthDiscontinuityThreshold"),
+                        config.getInt("maxNumberDepthDiscontinuity"));
   if (!is_valid) return;
   stats_ = CellSegmentStat(cell_points);
-  is_planar_ = isFittingMSE();
+  is_planar_ = hasSmallPlaneError(config.getFloat("depthSigmaCoeff"), config.getFloat("depthSigmaMargin"));
 }
 
 CellSegment& CellSegment::operator+=(CellSegment const& other) {
@@ -22,14 +28,13 @@ bool CellSegment::isPlanar() const { return is_planar_; }
 
 void CellSegment::calculateStats() { stats_.fitPlane(); }
 
-bool CellSegment::isValidPoints(Eigen::MatrixXf const& cell_points) const {
-  Eigen::Index valid_pts_threshold = cell_points.size() / config_->getInt("minPtsPerCell");
+bool CellSegment::hasValidPoints(Eigen::MatrixXf const& cell_points, size_t valid_pts_threshold) const {
   Eigen::Index valid_pts = (cell_points.col(2).array() > 0).count();
   return valid_pts >= valid_pts_threshold;
 }
 
-bool CellSegment::isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
-  float depth_disc_threshold = config_->getFloat("depthDiscontinuityThreshold");
+bool CellSegment::isHorizontalContinuous(Eigen::MatrixXf const& cell_z, float depth_disc_threshold,
+                                         int32_t max_number_depth_disc) const {
   Eigen::Index middle = cell_z.rows() / 2;
   float prev_depth = cell_z(middle, 0);
   int32_t disc_count = 0;
@@ -41,11 +46,11 @@ bool CellSegment::isHorizontalContinuous(Eigen::MatrixXf const& cell_z) const {
       ++disc_count;
   }
 
-  return disc_count < config_->getInt("maxNumberDepthDiscontinuity");
+  return disc_count < max_number_depth_disc;
 }
 
-bool CellSegment::isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
-  float depth_disc_threshold = config_->getFloat("depthDiscontinuityThreshold");
+bool CellSegment::isVerticalContinuous(Eigen::MatrixXf const& cell_z, float depth_disc_threshold,
+                                       int32_t max_number_depth_disc) const {
   Eigen::Index middle = cell_z.cols() / 2;
   float prev_depth = cell_z(0, middle);
   int32_t disc_count = 0;
@@ -57,22 +62,20 @@ bool CellSegment::isVerticalContinuous(Eigen::MatrixXf const& cell_z) const {
       ++disc_count;
   }
 
-  return disc_count < config_->getInt("maxNumberDepthDiscontinuity");
+  return disc_count < max_number_depth_disc;
 }
 
-bool CellSegment::isDepthContinuous(Eigen::MatrixXf const& cell_points) const {
-  auto cell_height = config_->getInt("patchSize");
-  auto cell_width = config_->getInt("patchSize");
-  Eigen::MatrixXf cell_z = cell_points.col(2).reshaped(cell_height, cell_width);
+bool CellSegment::isDepthContinuous(Eigen::MatrixXf const& cell_points, int32_t cell_width, int32_t cell_height,
+                                    float depth_disc_threshold, int32_t max_number_depth_disc) const {
+  Eigen::MatrixXf cell_z = cell_points.col(2).reshaped(cell_width, cell_height);
 
-  return isHorizontalContinuous(cell_z) && isVerticalContinuous(cell_z);
+  return isHorizontalContinuous(cell_z, depth_disc_threshold, max_number_depth_disc) &&
+         isVerticalContinuous(cell_z, depth_disc_threshold, max_number_depth_disc);
 }
 
-bool CellSegment::isFittingMSE() const {
+bool CellSegment::hasSmallPlaneError(float depth_sigma_coeff, float depth_sigma_margin) const {
   if (stats_.getMSE() < 0) return false;
-  float depth_sigma_coeff = config_->getFloat("depthSigmaCoeff");
-  float depth_sigma_margin = config_->getFloat("depthSigmaMargin");
-  float planar_threshold = depth_sigma_coeff * pow(stats_.getMean()[2], 2) + depth_sigma_margin;
+  float planar_threshold = depth_sigma_coeff * powf(stats_.getMean()[2], 2) + depth_sigma_margin;
   return stats_.getMSE() <= pow(planar_threshold, 2);
 }
 }  // namespace deplex
