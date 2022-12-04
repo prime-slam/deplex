@@ -43,7 +43,7 @@ void CellSegmentStat::fitPlane() {
   normal_ = (d_ > 0 ? v : -v);
   d_ = (d_ > 0 ? d_ : -d_);
 
-  mse_ = es.eigenvalues()[0] / nr_pts_;
-  score_ = es.eigenvalues()[1] / es.eigenvalues()[0];
+  mse_ = es.eigenvalues()[2] / nr_pts_;
+  score_ = es.eigenvalues()[2] / es.eigenvalues()[0];
 }
 }  // namespace deplex
