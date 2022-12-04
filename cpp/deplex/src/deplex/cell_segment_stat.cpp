@@ -1,9 +1,11 @@
 #include "cell_segment_stat.h"
 
+#include <limits>
+
 #include <Eigen/Eigenvalues>
 
 namespace deplex {
-CellSegmentStat::CellSegmentStat() : mse_(-1) {}
+CellSegmentStat::CellSegmentStat() : nr_pts_(0), mse_(std::numeric_limits<float>::max()), score_(0) {}
 
 CellSegmentStat::CellSegmentStat(Eigen::MatrixXf const& points)
     : nr_pts_(points.rows()),

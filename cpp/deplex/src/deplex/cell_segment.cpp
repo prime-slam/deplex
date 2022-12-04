@@ -1,7 +1,5 @@
 #include "cell_segment.h"
 
-#include <Eigen/Eigenvalues>
-
 namespace deplex {
 CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config const& config) : is_planar_(false) {
   size_t valid_pts_threshold = cell_points.size() / config.getInt("minPtsPerCell");
@@ -74,7 +72,6 @@ bool CellSegment::isDepthContinuous(Eigen::MatrixXf const& cell_points, int32_t 
 }
 
 bool CellSegment::hasSmallPlaneError(float depth_sigma_coeff, float depth_sigma_margin) const {
-  if (stats_.getMSE() < 0) return false;
   float planar_threshold = depth_sigma_coeff * powf(stats_.getMean()[2], 2) + depth_sigma_margin;
   return stats_.getMSE() <= pow(planar_threshold, 2);
 }
