@@ -7,7 +7,7 @@ class CellSegmentStat {
  public:
   CellSegmentStat();
 
-  explicit CellSegmentStat(Eigen::MatrixXf const& points);
+  explicit CellSegmentStat(Eigen::MatrixXd const& points);
 
   CellSegmentStat& operator+=(CellSegmentStat const& other);
 
@@ -28,8 +28,8 @@ class CellSegmentStat {
   float score_;
   float mse_;
   int32_t nr_pts_;
-  Eigen::Vector3f coord_sum_;
-  Eigen::Matrix3f variance_;
+  Eigen::Vector3d coord_sum_;
+  Eigen::Matrix3d variance_;
   Eigen::Vector3f mean_;
   Eigen::Vector3f normal_;
 };

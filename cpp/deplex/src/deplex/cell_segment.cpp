@@ -11,7 +11,7 @@ CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config cons
       isDepthContinuous(cell_points, cell_width, cell_height, config.getFloat("depthDiscontinuityThreshold"),
                         config.getInt("maxNumberDepthDiscontinuity"));
   if (!is_valid) return;
-  stats_ = CellSegmentStat(cell_points);
+  stats_ = CellSegmentStat(cell_points.cast<double>());
   is_planar_ = hasSmallPlaneError(config.getFloat("depthSigmaCoeff"), config.getFloat("depthSigmaMargin"));
 }
 
