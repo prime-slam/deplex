@@ -22,6 +22,7 @@ configure_file(globals.hpp.in globals.hpp)
 #####################################
 add_executable(unit-tests
     main.cpp
+    test_plane_extractor.cpp
 )
 
 target_include_directories(unit-tests SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

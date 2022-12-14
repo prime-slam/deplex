@@ -16,16 +16,28 @@
 #include "deplex/config.h"
 
 #include <fstream>
+#include <iostream>
 
 namespace deplex::config {
 Config::Config(std::map<std::string, std::string> const& param_map) : param_map_(param_map) {}
 
 Config::Config(std::string const& config_path) : param_map_(iniLoad(config_path)) {}
 
+bool Config::updateValue(std::string const& name, std::string const& value) {
+  auto value_ptr = param_map_.find(name);
+  if (value_ptr == param_map_.end()) {
+    std::cerr << "Warning: Couldn't update parameter: " + name << ". The name is not in parameters.";
+    return false;
+  }
+  value_ptr->second = value;
+  return true;
+}
+
 std::string Config::findValue(std::string const& name) const {
   auto value_ptr = param_map_.find(name);
-  if (value_ptr == param_map_.end())
+  if (value_ptr == param_map_.end()) {
     throw std::runtime_error("Config invalid parameter name provided: " + name);
+  }
   return value_ptr->second;
 }
 

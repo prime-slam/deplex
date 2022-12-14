@@ -85,7 +85,7 @@ const config::Config PlaneExtractor::kDefaultConfig{{{"patchSize", "12"},
                                                      {"maxMergeDist", "500"},
                                                      {"minRegionGrowingCandidateSize", "5"},
                                                      {"minRegionGrowingCellsActivated", "4"},
-                                                     {"minRegionPlanarityScore", "50"},
+                                                     {"minRegionPlanarityScore", "0.55"},
                                                      {"doRefinement", "true"},
                                                      {"refinementMultiplierCoeff", "15"},
                                                      {"depthSigmaCoeff", "1.425e-6"},
@@ -131,8 +131,11 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) 
   // 4. Region growing
   auto plane_segments = createPlaneSegments(hist, planar_flags, cell_dist_tols);
 #ifdef DEBUG_DEPLEX
-  std::clog << "[DebugInfo] Plane segments found: " << plane_segments.size() - 1 << '\n';
+  std::clog << "[DebugInfo] Plane segments found: " << (plane_segments.empty() ? 0 : plane_segments.size() - 1) << '\n';
 #endif
+  if (plane_segments.empty()) {
+    return Eigen::VectorXi::Zero(pcd_array.rows());
+  }
   // 5. Merge planes
   std::vector<int32_t> merge_labels = findMergedLabels(plane_segments);
 #ifdef DEBUG_DEPLEX

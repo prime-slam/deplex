@@ -45,11 +45,20 @@ class Config {
    */
   Config(std::string const& config_path);
 
-  int32_t getInt(std::string const& param_name) const;
+  /**
+   * Update config parameter with new value.
+   *
+   * @param name Parameter name.
+   * @param value Parameter value.
+   * @returns false if given name is not in parameters, true otherwise
+   */
+  bool updateValue(std::string const& name, std::string const& value);
 
-  float getFloat(std::string const& param_name) const;
+  int32_t getInt(std::string const& name) const;
 
-  bool getBool(std::string const& param_name) const;
+  float getFloat(std::string const& name) const;
+
+  bool getBool(std::string const& name) const;
 
  private:
   std::map<std::string, std::string> param_map_;
