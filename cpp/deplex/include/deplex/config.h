@@ -20,10 +20,29 @@
 #include <vector>
 
 namespace deplex::config {
+/**
+ * Wrapper class for PlaneExtractor algorithm parameters.
+ *
+ * One should use this class for setting custom algorithm parameters.
+ */
 class Config {
  public:
+  /**
+   * Config constructor.
+   *
+   * @param param_map Key-value map with config parameters.
+   */
   Config(std::map<std::string, std::string> const& param_map);
 
+  /**
+   * Config constructor.
+   *
+   * Constructor from .ini file.
+   * Each line should be either ini-header or parameter given in following form:
+   * paramName=paramValue
+   *
+   * @param config_path Path to .ini file with parameters.
+   */
   Config(std::string const& config_path);
 
   int32_t getInt(std::string const& param_name) const;
