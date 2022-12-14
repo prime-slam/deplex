@@ -15,6 +15,8 @@
  */
 #include "deplex/utils/image_to_cloud.h"
 
+#ifdef HAVE_OPENCV
+
 #include <fstream>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -59,3 +61,4 @@ Eigen::MatrixXf readImage(std::string const& image_path, std::string const& intr
   return readImage(image_path, K);
 }
 }  // namespace deplex::utils
+#endif  // HAVE_OPENCV

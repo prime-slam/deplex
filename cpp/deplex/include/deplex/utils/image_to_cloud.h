@@ -15,24 +15,27 @@
  */
 #pragma once
 
+#ifdef HAVE_OPENCV
+
 #include <Eigen/Core>
 
 namespace deplex::utils {
 /**
-  * Read image to organized point cloud points.
-  *
-  * @param image_path Path to RGB-D image.
-  * @param K Camera intrinsics matrix.
-  * @returns Organized point cloud points.
+ * Read image to organized point cloud points.
+ *
+ * @param image_path Path to RGB-D image.
+ * @param K Camera intrinsics matrix.
+ * @returns Organized point cloud points.
  */
 Eigen::MatrixXf readImage(std::string const& image_path, Eigen::Matrix3f const& K);
 
 /**
-  * Read image to organized point cloud points.
-  *
-  * @param image_path Path to RGB-D image.
-  * @param intrinsics_path Path to file with intrinsics matrix.
-  * @returns Organized point cloud points.
+ * Read image to organized point cloud points.
+ *
+ * @param image_path Path to RGB-D image.
+ * @param intrinsics_path Path to file with intrinsics matrix.
+ * @returns Organized point cloud points.
  */
 Eigen::MatrixXf readImage(std::string const& image_path, std::string const& intrinsics_path);
 }  // namespace deplex::utils
+#endif  // HAVE_OPENCV
