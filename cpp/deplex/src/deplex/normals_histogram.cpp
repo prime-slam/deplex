@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "histogram.h"
+#include "normals_histogram.h"
 
 namespace deplex {
-Histogram::Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals, std::bitset<BITSET_SIZE> const& mask)
+NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals,
+                                   std::bitset<BITSET_SIZE> const& mask)
     : nr_bins_per_coord_(nr_bins_per_coord),
       nr_points_(static_cast<int32_t>(normals.rows())),
       hist_(nr_bins_per_coord * nr_bins_per_coord, 0),
@@ -44,7 +45,7 @@ Histogram::Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals, 
   }
 }
 
-std::vector<int32_t> Histogram::getPointsFromMostFrequentBin() const {
+std::vector<int32_t> NormalsHistogram::getPointsFromMostFrequentBin() const {
   std::vector<int32_t> point_ids;
 
   auto most_frequent_bin = std::max_element(hist_.begin(), hist_.end());
@@ -62,7 +63,7 @@ std::vector<int32_t> Histogram::getPointsFromMostFrequentBin() const {
   return point_ids;
 }
 
-void Histogram::removePoint(int32_t point_id) {
+void NormalsHistogram::removePoint(int32_t point_id) {
   --hist_[bins_[point_id]];
   bins_[point_id] = -1;
 }

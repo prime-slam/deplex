@@ -24,7 +24,7 @@
 #endif
 
 #include "cell_segment.h"
-#include "histogram.h"
+#include "normals_histogram.h"
 
 #ifndef BITSET_SIZE
 #define BITSET_SIZE 65536  // 2^16
@@ -54,12 +54,12 @@ class PlaneExtractor::Impl {
 
   std::bitset<BITSET_SIZE> findPlanarCells(Eigen::MatrixXf const& pcd_array);
 
-  Histogram initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags);
+  NormalsHistogram initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags);
 
   std::vector<float> computeCellDistTols(Eigen::MatrixXf const& pcd_array,
                                          std::bitset<BITSET_SIZE> const& planar_flags);
 
-  std::vector<std::shared_ptr<CellSegment>> createPlaneSegments(Histogram hist,
+  std::vector<std::shared_ptr<CellSegment>> createPlaneSegments(NormalsHistogram hist,
                                                                 std::bitset<BITSET_SIZE> const& planar_flags,
                                                                 std::vector<float> const& cell_dist_tols);
 
@@ -125,7 +125,7 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) 
   std::clog << "[DebugInfo] Planar cell found: " << planar_flags.count() << '\n';
 #endif
   // 2. Histogram initialization
-  Histogram hist = initializeHistogram(planar_flags);
+  NormalsHistogram hist = initializeHistogram(planar_flags);
   // 3. Compute cell dist tols
   std::vector<float> cell_dist_tols = computeCellDistTols(organized_array, planar_flags);
   // 4. Region growing
@@ -193,14 +193,14 @@ std::bitset<BITSET_SIZE> PlaneExtractor::Impl::findPlanarCells(Eigen::MatrixXf c
   return planar_flags;
 }
 
-Histogram PlaneExtractor::Impl::initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags) {
+NormalsHistogram PlaneExtractor::Impl::initializeHistogram(std::bitset<BITSET_SIZE> const& planar_flags) {
   Eigen::MatrixXf normals = Eigen::MatrixXf::Zero(nr_total_cells_, 3);
   for (size_t cell_id = planar_flags._Find_first(); cell_id != planar_flags.size();
        cell_id = planar_flags._Find_next(cell_id)) {
     normals.row(cell_id) = cell_grid_[cell_id]->getStat().getNormal();
   }
   int nr_bins_per_coord = config_.getInt("histogramBinsPerCoord");
-  return Histogram{nr_bins_per_coord, normals, planar_flags};
+  return NormalsHistogram{nr_bins_per_coord, normals, planar_flags};
 }
 
 std::vector<float> PlaneExtractor::Impl::computeCellDistTols(Eigen::MatrixXf const& pcd_array,
@@ -225,7 +225,7 @@ std::vector<float> PlaneExtractor::Impl::computeCellDistTols(Eigen::MatrixXf con
 }
 
 std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegments(
-    Histogram hist, std::bitset<BITSET_SIZE> const& planar_flags, std::vector<float> const& cell_dist_tols) {
+    NormalsHistogram hist, std::bitset<BITSET_SIZE> const& planar_flags, std::vector<float> const& cell_dist_tols) {
   std::vector<std::shared_ptr<CellSegment>> plane_segments;
   std::bitset<BITSET_SIZE> unassigned_mask(planar_flags);
   auto remaining_planar_cells = static_cast<int32_t>(planar_flags.count());

@@ -25,9 +25,9 @@
 #endif
 
 namespace deplex {
-class Histogram {
+class NormalsHistogram {
  public:
-  Histogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals, std::bitset<BITSET_SIZE> const& mask);
+  NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals, std::bitset<BITSET_SIZE> const& mask);
 
   std::vector<int32_t> getPointsFromMostFrequentBin() const;
 
