@@ -22,17 +22,35 @@
 #include "deplex/config.h"
 
 namespace deplex {
+/**
+ * Algorithm for plane extraction from RGB-D data.
+ */
 class PlaneExtractor {
  public:
+  /**
+   * PlaneExtractor constructor.
+   *
+   * @param image_height Image height in pixels.
+   * @param image_width Image width in pixels.
+   * @param config Parameters of plane extraction algorithm.
+   */
   PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config = kDefaultConfig);
   ~PlaneExtractor();
 
+  /**
+   * Extract planes from given image.
+   *
+   * @param pcd_array Points matrix [Nx3] of ORGANIZED point cloud
+   * i.e. points that refer to organized image structure.
+   * @returns 1D Array, where i-th value is plane number to which refers i-th point of point cloud.
+   */
   Eigen::VectorXi process(Eigen::MatrixXf const& pcd_array);
 
-  PlaneExtractor(PlaneExtractor && op) noexcept;
-  PlaneExtractor& operator=(PlaneExtractor && op) noexcept;
+  PlaneExtractor(PlaneExtractor&& op) noexcept;
+  PlaneExtractor& operator=(PlaneExtractor&& op) noexcept;
 
   const static config::Config kDefaultConfig;
+
  private:
   class Impl;
   std::unique_ptr<Impl> impl_;
