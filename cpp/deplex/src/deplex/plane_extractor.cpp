@@ -28,8 +28,6 @@
 
 namespace deplex {
 
-typedef u_char label_t;
-
 class PlaneExtractor::Impl {
  public:
   Impl(int32_t image_height, int32_t image_width, config::Config config = kDefaultConfig);
