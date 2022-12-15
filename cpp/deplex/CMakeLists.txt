@@ -36,6 +36,9 @@ add_library(${TARGET_NAME} SHARED ${SRC_FILES})
 #####################################
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 14)
 target_compile_features(${TARGET_NAME} PUBLIC cxx_std_14)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_compile_options(${TARGET_NAME} PRIVATE -stdlib=libc++)
+endif()
 
 if (DEBUG_DEPLEX)
     target_compile_definitions(${TARGET_NAME} PRIVATE DEBUG_DEPLEX)
