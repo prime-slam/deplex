@@ -26,7 +26,17 @@ add_executable(unit-tests
     test_plane_extractor.cpp
 )
 
+target_compile_features(unit-tests PRIVATE cxx_std_17)
+
 target_include_directories(unit-tests SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(unit-tests PRIVATE GTest::gtest_main)
 target_link_libraries(unit-tests PRIVATE deplex)
+
+#####################################
+# Run tests target
+#####################################
+add_custom_target(run-unit-tests
+    COMMAND unit-tests
+    DEPENDS unit-tests
+)

@@ -16,6 +16,7 @@
 #include "deplex/utils/eigen_io.h"
 
 #include <fstream>
+#include <vector>
 
 namespace deplex::utils {
 Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter) {
