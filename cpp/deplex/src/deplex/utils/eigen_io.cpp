@@ -18,7 +18,8 @@
 #include <fstream>
 #include <vector>
 
-namespace deplex::utils {
+namespace deplex {
+namespace utils {
 Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter) {
   std::vector<float> points;
 
@@ -41,4 +42,5 @@ void savePointCloudCSV(Eigen::MatrixXf const& pcd_points, std::string const& pat
   std::ofstream file(path);
   file << pcd_points.format(CSVFormat);
 }
-}  // namespace deplex::utils
+}  // namespace utils
+}  // namespace deplex

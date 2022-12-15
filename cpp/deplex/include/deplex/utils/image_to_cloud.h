@@ -19,7 +19,8 @@
 
 #include <Eigen/Core>
 
-namespace deplex::utils {
+namespace deplex {
+namespace utils {
 /**
  * Read image to organized point cloud points.
  *
@@ -37,5 +38,6 @@ Eigen::MatrixXf readImage(std::string const& image_path, Eigen::Matrix3f const& 
  * @returns Organized point cloud points.
  */
 Eigen::MatrixXf readImage(std::string const& image_path, std::string const& intrinsics_path);
-}  // namespace deplex::utils
+}  // namespace utils
+}  // namespace deplex
 #endif  // HAVE_OPENCV

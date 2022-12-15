@@ -19,7 +19,8 @@
 #include <string>
 #include <vector>
 
-namespace deplex::config {
+namespace deplex {
+namespace config {
 /**
  * Wrapper class for PlaneExtractor algorithm parameters.
  *
@@ -67,4 +68,5 @@ class Config {
 
   std::map<std::string, std::string> iniLoad(std::string const& path) const;
 };
-}  // namespace deplex::config
+}  // namespace config
+}  // namespace deplex

@@ -34,6 +34,7 @@ add_library(${TARGET_NAME} SHARED ${SRC_FILES})
 #####################################
 # Define Target Properties
 #####################################
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 14)
 target_compile_features(${TARGET_NAME} PUBLIC cxx_std_14)
 
 if (DEBUG_DEPLEX)

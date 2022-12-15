@@ -18,7 +18,8 @@
 #include <fstream>
 #include <iostream>
 
-namespace deplex::config {
+namespace deplex {
+namespace config {
 Config::Config(std::map<std::string, std::string> const& param_map) : param_map_(param_map) {}
 
 Config::Config(std::string const& config_path) : param_map_(iniLoad(config_path)) {}
@@ -83,4 +84,5 @@ bool Config::getBool(std::string const& name) const {
                            ". Allowed values: "
                            "[1, true, True] or [0, false, False]");
 }
-}  // namespace deplex::config
+}  // namespace config
+}  // namespace deplex

@@ -17,7 +17,8 @@
 
 #include <Eigen/Core>
 
-namespace deplex::utils {
+namespace deplex {
+namespace utils {
 const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCols, ", ", "\n");
 /**
  * Read point cloud points from file
@@ -26,7 +27,7 @@ const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCol
  * @param delimiter Symbol by which values in files are separated.
  * @returns Matrix[Nx3] with points.
  */
-Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter=',');
+Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter = ',');
 
 /**
  * Write point cloud points to file
@@ -35,4 +36,5 @@ Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter=',');
  * @param path Path to output file.
  */
 void savePointCloudCSV(Eigen::MatrixXf const& pcd_points, std::string const& path);
+}  // namespace utils
 }  // namespace deplex::utils
