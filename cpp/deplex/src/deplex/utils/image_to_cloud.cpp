@@ -21,7 +21,8 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-namespace deplex::utils {
+namespace deplex {
+namespace utils {
 Eigen::MatrixXf readImage(std::string const& image_path, Eigen::Matrix3f const& K) {
   cv::Mat d_img = cv::imread(image_path, cv::IMREAD_ANYDEPTH);
   d_img.convertTo(d_img, CV_32F);
@@ -60,5 +61,6 @@ Eigen::MatrixXf readImage(std::string const& image_path, std::string const& intr
 
   return readImage(image_path, K);
 }
-}  // namespace deplex::utils
+}  // namespace utils
+}  // namespace deplex
 #endif  // HAVE_OPENCV
