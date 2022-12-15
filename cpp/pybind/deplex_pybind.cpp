@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /**
  * Copyright 2022 prime-slam
  *
