@@ -11,6 +11,7 @@ set(ICL_SAMPLE_IMAGE "${DATA_DIR}/icl_nuim/0.png")
 set(TUM_INTRINSICS "${DATA_DIR}/configs/TUM_fr3_long_val.K")
 set(TUM_CONFIG "${DATA_DIR}/configs/TUM_fr3_long_val.ini")
 set(TUM_SAMPLE_IMAGE "${DATA_DIR}/tum/1341848230.910894.png")
+set(TUM_SAMPLE_IMAGE_POINTS "${DATA_DIR}/tum/points_1341848230.910894.csv")
 
 #####################################
 # Configure globals.hpp
