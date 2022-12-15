@@ -1,6 +1,7 @@
 #pragma once
 
-namespace deplex::test_globals {
+namespace deplex {
+namespace test_globals {
 // ICL NUIM living room dataset
 namespace icl {
 constexpr const int image_width = 640, image_height = 480;
@@ -16,4 +17,5 @@ constexpr const char* config = "${TUM_CONFIG}";
 constexpr const char* sample_image = "${TUM_SAMPLE_IMAGE}";
 constexpr const char* sample_image_points = "${TUM_SAMPLE_IMAGE_POINTS}";
 }  // namespace tum
-}  // namespace deplex::test_globals
+}  // namespace test_globals
+}  // namespace deplex

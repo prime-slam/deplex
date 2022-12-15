@@ -29,7 +29,7 @@ find_package(OpenCV QUIET)
 #####################################
 # Define Target
 #####################################
-add_library(${TARGET_NAME} SHARED ${SRC_FILES})
+add_library(${TARGET_NAME} ${SRC_FILES})
 
 #####################################
 # Define Target Properties
