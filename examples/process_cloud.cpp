@@ -12,10 +12,10 @@ int main() {
 
   constexpr int IMAGE_HEIGHT = 480, IMAGE_WIDTH = 640;
 
-  deplex::config::Config config = deplex::config::Config(config_path);
+  deplex::config::Config config = deplex::config::Config(config_path.string());
 
   auto algorithm = deplex::PlaneExtractor(IMAGE_HEIGHT, IMAGE_WIDTH, config);
-  Eigen::MatrixXf pcd_array = deplex::utils::readPointCloudCSV(image_path);
+  Eigen::MatrixXf pcd_array = deplex::utils::readPointCloudCSV(image_path.string());
 
   auto labels = algorithm.process(pcd_array);
   std::cout << "Found planes: " << labels.maxCoeff() << '\n';
