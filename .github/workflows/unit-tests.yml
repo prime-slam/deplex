@@ -18,5 +18,5 @@ jobs:
           cmake --build ${{ github.workspace }}/build --config Release
 
       - name: Run GTest
-        run: make run-unit-tests
-        working-directory: ${{ github.workspace }}/build
+        run: ctest -C ${{env.BUILD_TYPE}}
+        working-directory: ${{ github.workspace }}/build/cpp/tests
