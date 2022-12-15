@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "pybind/plane_extraction/plane_extraction.h"
+#pragma once
+#include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
+
+namespace py = pybind11;
 
 namespace deplex {
-PYBIND11_MODULE(pybind, m) {
-  m.doc() = "This is pybind module";
-  pybind_plane_extraction(m);
-}
+void pybind_plane_extraction(py::module& m);
 
+void pybind_config(py::module& m);
+
+void pybind_extractor(py::module& m);
 }  // namespace deplex
