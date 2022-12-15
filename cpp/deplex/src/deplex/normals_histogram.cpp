@@ -15,6 +15,8 @@
  */
 #include "normals_histogram.h"
 
+#include <cmath>
+
 namespace deplex {
 NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals,
                                    std::vector<bool> const& mask)

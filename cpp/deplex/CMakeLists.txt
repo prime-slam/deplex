@@ -40,6 +40,10 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_compile_options(${TARGET_NAME} PRIVATE -stdlib=libc++)
 endif()
 
+if (MSVC)
+    target_compile_definitions(${TARGET_NAME} PUBLIC _USE_MATH_DEFINES)
+endif()
+
 if (DEBUG_DEPLEX)
     target_compile_definitions(${TARGET_NAME} PRIVATE DEBUG_DEPLEX)
 endif()
