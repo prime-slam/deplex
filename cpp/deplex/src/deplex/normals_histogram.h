@@ -15,19 +15,15 @@
  */
 #pragma once
 
-#include <bitset>
 #include <vector>
 
 #include <Eigen/Core>
 
-#ifndef BITSET_SIZE
-#define BITSET_SIZE 65536  // 2^16
-#endif
 
 namespace deplex {
 class NormalsHistogram {
  public:
-  NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals, std::bitset<BITSET_SIZE> const& mask);
+  NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals, std::vector<bool> const& mask);
 
   std::vector<int32_t> getPointsFromMostFrequentBin() const;
 

@@ -17,7 +17,7 @@
 
 namespace deplex {
 NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals,
-                                   std::bitset<BITSET_SIZE> const& mask)
+                                   std::vector<bool> const& mask)
     : nr_bins_per_coord_(nr_bins_per_coord),
       nr_points_(static_cast<int32_t>(normals.rows())),
       hist_(nr_bins_per_coord * nr_bins_per_coord, 0),
@@ -28,20 +28,22 @@ NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf co
   // Azimuth angle [-pi pi]
   double min_Y(-M_PI), max_Y(M_PI);
 
-  for (size_t i = mask._Find_first(); i != mask.size(); i = mask._Find_next(i)) {
-    Eigen::Vector3f normal = normals.row(i);
-    double n_proj_norm = sqrt(pow(normal[0], 2) + pow(normal[1], 2));
-    double polar_angle = acos(-normal[2]);
-    double azimuth_angle = atan2(normal[0] / n_proj_norm, normal[1] / n_proj_norm);
+  for (size_t i = 0; i < mask.size(); ++i) {
+    if (mask[i]) {
+      Eigen::Vector3f normal = normals.row(i);
+      double n_proj_norm = sqrt(pow(normal[0], 2) + pow(normal[1], 2));
+      double polar_angle = acos(-normal[2]);
+      double azimuth_angle = atan2(normal[0] / n_proj_norm, normal[1] / n_proj_norm);
 
-    auto X_q = static_cast<int32_t>((nr_bins_per_coord_ - 1) * (polar_angle - min_X) / (max_X - min_X));
-    int32_t Y_q = 0;
-    if (X_q > 0) {
-      Y_q = static_cast<int32_t>((nr_bins_per_coord_ - 1) * (azimuth_angle - min_Y) / (max_Y - min_Y));
+      auto X_q = static_cast<int32_t>((nr_bins_per_coord_ - 1) * (polar_angle - min_X) / (max_X - min_X));
+      int32_t Y_q = 0;
+      if (X_q > 0) {
+        Y_q = static_cast<int32_t>((nr_bins_per_coord_ - 1) * (azimuth_angle - min_Y) / (max_Y - min_Y));
+      }
+      int32_t bin = Y_q * nr_bins_per_coord_ + X_q;
+      bins_[i] = bin;
+      ++hist_[bin];
     }
-    int32_t bin = Y_q * nr_bins_per_coord_ + X_q;
-    bins_[i] = bin;
-    ++hist_[bin];
   }
 }
 
