@@ -28,3 +28,5 @@ for v in "${PYTHON_VERSION[@]}"; do
   cmake -B build -DPYTHON_EXECUTABLE="${PYTHON_PATH[0]}"
   cmake --build build -j "${NUMPROC}" --target build-wheel
 done
+
+auditwheel repair ./build/wheels/*.whl
