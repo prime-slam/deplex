@@ -1,0 +1,24 @@
+name: Linux wheel TestPyPI
+
+on: [push]
+
+jobs:
+  build_wheel_linux:
+    name: Build wheel on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    container: quay.io/pypa/manylinux2014_x86_64:2022-12-11-145d107
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Python wheel
+        run: |
+          chmod -R +x tools/* \
+          && tools/linux-wheels.sh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./build/wheels
