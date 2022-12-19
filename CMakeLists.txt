@@ -15,17 +15,6 @@ option(DEBUG_DEPLEX "Additional verbosity and results by stage" OFF)
 
 set(DEPLEX_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 
-if (${BUILD_PYTHON})
-    find_package(Python3 3.6
-            COMPONENTS Interpreter Development)
-    if (Python3_FOUND)
-        # Setup PYTHON_EXECUTABLE for 3rdparty modules
-        set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE} CACHE STRING
-                "Deprecated path to the Python executable (for 3rdparty only)" FORCE)
-        message("Found Python3 executable -- ${Python3_EXECUTABLE}")
-    endif()
-endif()
-
 add_subdirectory(external)
 add_subdirectory(cpp)
 if (${BUILD_EXAMPLES})
