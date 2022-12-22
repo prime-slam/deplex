@@ -14,4 +14,28 @@
  * limitations under the License.
  */
 #include <benchmark/benchmark.h>
+#include <deplex/config.h>
+#include <deplex/plane_extractor.h>
+#include <deplex/utils/eigen_io.h>
 
+#include "globals.hpp"
+
+namespace deplex {
+namespace {
+void BM_SINGLE_TUM(benchmark::State& state) {
+  auto config = config::Config(bench_globals::tum::config);
+  auto algorithm = PlaneExtractor(480, 640, config);
+
+  auto cloud = utils::readPointCloudCSV(bench_globals::tum::sample_image_points);
+  for (auto _ : state) {
+    for (int i = 0; i < 60; ++i) {
+      algorithm.process(cloud);
+    }
+  }
+}
+
+BENCHMARK(BM_SINGLE_TUM)->Unit(benchmark::TimeUnit::kSecond)->Iterations(30);
+}  // namespace
+}  // namespace deplex
+
+BENCHMARK_MAIN();
