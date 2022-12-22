@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 #include <benchmark/benchmark.h>
-#include <deplex/config.h>
-#include <deplex/plane_extractor.h>
-#include <deplex/utils/eigen_io.h>
+#include <deplex/deplex.h>
 
 #include "globals.hpp"
 
