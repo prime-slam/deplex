@@ -1,2 +1,2 @@
-# fast-CAPE
-Breathe new life into CAPE algorithm
+# deplex
+Library for efficient plane segmentation from depth images.
