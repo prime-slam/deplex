@@ -15,24 +15,30 @@
  */
 #pragma once
 
-#include <vector>
-
 #include <Eigen/Core>
 
+#include "cell_segment.h"
 
 namespace deplex {
-class NormalsHistogram {
+class CellGrid {
  public:
-  NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals);
+  CellGrid(Eigen::MatrixXf const& points, config::Config const& config, int32_t number_horizontal_cells,
+           int32_t number_vertical_cells);
 
-  std::vector<int32_t> getPointsFromMostFrequentBin() const;
+  CellSegment const& getByCoordinates(size_t x, size_t y) const;
 
-  void removePoint(int32_t point_id);
+  CellSegment const& operator[] (size_t cell_id) const;
+
+  std::vector<bool> const& getPlanarMask() const;
+
+  size_t size() const;
 
  private:
-  std::vector<int32_t> bins_;
-  std::vector<int32_t> hist_;
-  int32_t nr_bins_per_coord_;
-  int32_t nr_points_;
+  int32_t cell_width_;
+  int32_t cell_height_;
+  int32_t number_horizontal_cells_;
+  int32_t number_vertical_cells_;
+  std::vector<std::vector<CellSegment>> cell_grid_;
+  std::vector<bool> planar_mask_;
 };
 }  // namespace deplex

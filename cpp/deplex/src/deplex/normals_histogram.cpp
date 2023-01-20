@@ -18,8 +18,7 @@
 #include <cmath>
 
 namespace deplex {
-NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals,
-                                   std::vector<bool> const& mask)
+NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals)
     : nr_bins_per_coord_(nr_bins_per_coord),
       nr_points_(static_cast<int32_t>(normals.rows())),
       hist_(nr_bins_per_coord * nr_bins_per_coord, 0),
@@ -30,8 +29,8 @@ NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf co
   // Azimuth angle [-pi pi]
   double min_Y(-M_PI), max_Y(M_PI);
 
-  for (size_t i = 0; i < mask.size(); ++i) {
-    if (mask[i]) {
+  for (Eigen::Index i = 0; i < normals.rows(); ++i) {
+    if (!normals.row(i).isZero()) {
       Eigen::Vector3f normal = normals.row(i);
       double n_proj_norm = sqrt(pow(normal[0], 2) + pow(normal[1], 2));
       double polar_angle = acos(-normal[2]);
