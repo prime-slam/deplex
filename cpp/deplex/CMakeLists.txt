@@ -10,6 +10,7 @@ set(SRC_FILES
     ${TARGET_SOURCE_DIR}/deplex/config.cpp
     ${TARGET_SOURCE_DIR}/deplex/cell_segment_stat.cpp
     ${TARGET_SOURCE_DIR}/deplex/cell_segment.cpp
+    ${TARGET_SOURCE_DIR}/deplex/cell_grid.cpp
     ${TARGET_SOURCE_DIR}/deplex/normals_histogram.cpp
     ${TARGET_SOURCE_DIR}/deplex/plane_extractor.cpp
     ${TARGET_SOURCE_DIR}/deplex/utils/image_to_cloud.cpp

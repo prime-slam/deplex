@@ -28,6 +28,9 @@ CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config cons
   if (!is_valid) return;
   stats_ = CellSegmentStat(cell_points.cast<double>());
   is_planar_ = hasSmallPlaneError(config.getFloat("depthSigmaCoeff"), config.getFloat("depthSigmaMargin"));
+  // TODO: add minMergeDist to config
+  merge_tolerance_ = calculateMergeTolerance(cell_points, config.getFloat("minCosAngleForMerge"), 20.0,
+                                             config.getFloat("maxMergeDist"));
 }
 
 CellSegment& CellSegment::operator+=(CellSegment const& other) {
@@ -38,6 +41,8 @@ CellSegment& CellSegment::operator+=(CellSegment const& other) {
 CellSegmentStat const& CellSegment::getStat() const { return stats_; };
 
 bool CellSegment::isPlanar() const { return is_planar_; }
+
+float CellSegment::getMergeTolerance() const { return merge_tolerance_; }
 
 void CellSegment::calculateStats() { stats_.fitPlane(); }
 
@@ -90,4 +95,13 @@ bool CellSegment::hasSmallPlaneError(float depth_sigma_coeff, float depth_sigma_
   float planar_threshold = depth_sigma_coeff * powf(stats_.getMean()[2], 2) + depth_sigma_margin;
   return stats_.getMSE() <= pow(planar_threshold, 2);
 }
+
+float CellSegment::calculateMergeTolerance(Eigen::MatrixXf const& cell_points, float cos_angle, float min_merge_dist,
+                                           float max_merge_dist) const {
+  float sin_angle_for_merge = sqrtf(1 - powf(cos_angle, 2));
+  float cell_diameter = (cell_points.row(0) - cell_points.row(cell_points.rows() - 1)).norm();
+  float truncated_distance = std::min(std::max(cell_diameter * sin_angle_for_merge, min_merge_dist), max_merge_dist);
+  return powf(truncated_distance, 2);
+}
+
 }  // namespace deplex
