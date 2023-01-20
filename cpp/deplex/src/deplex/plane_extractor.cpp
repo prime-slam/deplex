@@ -23,6 +23,8 @@
 #include <iostream>
 #endif
 
+#include <queue>
+
 #include "cell_grid.h"
 #include "normals_histogram.h"
 
@@ -42,22 +44,21 @@ class PlaneExtractor::Impl {
   int32_t nr_pts_per_cell_;
   int32_t image_height_;
   int32_t image_width_;
-  std::vector<std::shared_ptr<CellSegment>> cell_grid_;
   Eigen::MatrixXi labels_map_;
   void organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out);
 
   NormalsHistogram initializeHistogram(CellGrid const& cell_grid);
 
-  std::vector<std::shared_ptr<CellSegment>> createPlaneSegments(CellGrid const& cell_grid, NormalsHistogram hist);
+  std::vector<CellSegment> createPlaneSegments(CellGrid const& cell_grid, NormalsHistogram hist);
 
-  std::vector<int32_t> findMergedLabels(std::vector<std::shared_ptr<CellSegment>>& plane_segments);
+  std::vector<int32_t> findMergedLabels(std::vector<CellSegment>* plane_segments);
 
   Eigen::VectorXi toImageLabels(std::vector<int32_t> const& merge_labels);
 
   void cleanArtifacts();
 
-  void growSeed(int32_t x, int32_t y, int32_t prev_index, std::vector<bool> const& unassigned,
-                std::vector<bool>* activation_map, std::vector<float> const& cell_dist_tols) const;
+  void growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned, std::vector<bool>* activation_map,
+                CellGrid const& cell_grid) const;
 
   std::vector<std::vector<bool>> getConnectedComponents(size_t nr_planes) const;
 
@@ -89,7 +90,6 @@ PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Co
       nr_pts_per_cell_(pow(config.getInt("patchSize"), 2)),
       image_height_(image_height),
       image_width_(image_width),
-      cell_grid_(nr_total_cells_, nullptr),
       labels_map_(Eigen::MatrixXi::Zero(nr_vertical_cells_, nr_horizontal_cells_)) {}
 
 PlaneExtractor::~PlaneExtractor() = default;
@@ -117,32 +117,31 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) 
 
   // 3. Region growing
   auto plane_segments = createPlaneSegments(cell_grid, hist);
-  // #ifdef DEBUG_DEPLEX
-  //   std::clog << "[DebugInfo] Plane segments found: " << (plane_segments.empty() ? 0 : plane_segments.size() - 1) <<
-  //   '\n';
-  // #endif
-  //   if (plane_segments.empty()) {
-  //     return Eigen::VectorXi::Zero(pcd_array.rows());
-  //   }
-  //   // 5. Merge planes
-  //   std::vector<int32_t> merge_labels = findMergedLabels(plane_segments);
-  // #ifdef DEBUG_DEPLEX
-  //   std::vector<int32_t> sorted_labels(merge_labels);
-  //   std::sort(sorted_labels.begin(), sorted_labels.end());
-  //
-  //   std::clog << "[DebugInfo] Planes number after merge: "
-  //             << std::distance(sorted_labels.begin(), std::unique(sorted_labels.begin(), sorted_labels.end())) - 1
-  //             << '\n';
-  // #endif
-  //   Eigen::VectorXi labels = toImageLabels(merge_labels);
-  // #ifdef DEBUG_DEPLEX
-  //   std::ofstream of("dbg_3_labels.csv");
-  //   of << labels.reshaped<Eigen::RowMajor>(image_height_, image_width_)
-  //             .format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n"));
-  // #endif
-  //   // 7. Cleanup
-  //   cleanArtifacts();
-  //   return labels;
+#ifdef DEBUG_DEPLEX
+  std::clog << "[DebugInfo] Plane segments found: " << (plane_segments.empty() ? 0 : plane_segments.size() - 1) << '\n';
+#endif
+  if (plane_segments.empty()) {
+    return Eigen::VectorXi::Zero(pcd_array.rows());
+  }
+  // 5. Merge planes
+  std::vector<int32_t> merge_labels = findMergedLabels(&plane_segments);
+#ifdef DEBUG_DEPLEX
+  std::vector<int32_t> sorted_labels(merge_labels);
+  std::sort(sorted_labels.begin(), sorted_labels.end());
+
+  std::clog << "[DebugInfo] Planes number after merge: "
+            << std::distance(sorted_labels.begin(), std::unique(sorted_labels.begin(), sorted_labels.end())) - 1
+            << '\n';
+#endif
+  Eigen::VectorXi labels = toImageLabels(merge_labels);
+#ifdef DEBUG_DEPLEX
+  std::ofstream of("dbg_3_labels.csv");
+  of << labels.reshaped<Eigen::RowMajor>(image_height_, image_width_)
+            .format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n"));
+#endif
+  // 7. Cleanup
+  cleanArtifacts();
+  return labels;
 }
 
 void PlaneExtractor::Impl::organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out) {
@@ -179,9 +178,8 @@ NormalsHistogram PlaneExtractor::Impl::initializeHistogram(CellGrid const& cell_
   return NormalsHistogram{nr_bins_per_coord, normals};
 }
 
-std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegments(CellGrid const& cell_grid,
-                                                                                    NormalsHistogram hist) {
-  std::vector<std::shared_ptr<CellSegment>> plane_segments;
+std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid const& cell_grid, NormalsHistogram hist) {
+  std::vector<CellSegment> plane_segments;
   std::vector<bool> unassigned_mask(cell_grid.getPlanarMask());
   auto remaining_planar_cells = static_cast<int32_t>(std::count(unassigned_mask.begin(), unassigned_mask.end(), true));
 
@@ -201,15 +199,14 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegme
       }
     }
     // 3. Grow seed
-    std::shared_ptr<CellSegment> new_segment = cell_grid_[seed_id];
-    int32_t y = seed_id / nr_horizontal_cells_;
-    int32_t x = seed_id % nr_horizontal_cells_;
-    std::vector<bool> activation_map(nr_total_cells_);
-    growSeed(x, y, seed_id, unassigned_mask, &activation_map, cell_dist_tols);
+    CellSegment plane_candidate(cell_grid[seed_id]);
+    std::vector<bool> activation_map(unassigned_mask.size());
+    growSeed(seed_id, unassigned_mask, &activation_map, cell_grid);
+
     // 4. Merge activated cells & remove from hist
     for (size_t i = 0; i < activation_map.size(); ++i) {
       if (activation_map[i]) {
-        *new_segment += *cell_grid_[i];
+        plane_candidate += cell_grid[i];
         hist.removePoint(static_cast<int32_t>(i));
         unassigned_mask[i] = false;
         --remaining_planar_cells;
@@ -221,11 +218,11 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegme
       continue;
     }
 
-    new_segment->calculateStats();
+    plane_candidate.calculateStats();
 
     // 5. Model fitting
-    if (new_segment->getStat().getScore() > config_.getFloat("minRegionPlanarityScore")) {
-      plane_segments.push_back(new_segment);
+    if (plane_candidate.getStat().getScore() > config_.getFloat("minRegionPlanarityScore")) {
+      plane_segments.push_back(plane_candidate);
       auto nr_curr_planes = static_cast<int32_t>(plane_segments.size());
       // Mark cells
       // TODO: Effective assigning by mask?
@@ -244,128 +241,128 @@ std::vector<std::shared_ptr<CellSegment>> PlaneExtractor::Impl::createPlaneSegme
   return plane_segments;
 }
 
-//
-// std::vector<int32_t> PlaneExtractor::Impl::findMergedLabels(std::vector<std::shared_ptr<CellSegment>>&
-// plane_segments) {
-//   size_t nr_planes = plane_segments.size();
-//   // Boolean matrix [nr_planes X nr_planes]
-//   auto planes_association_mx = getConnectedComponents(nr_planes);
-//   std::vector<int32_t> plane_merge_labels(nr_planes);
-//   std::iota(plane_merge_labels.begin(), plane_merge_labels.end(), 0);
-//
-//   // Connect compatible planes
-//   for (size_t row_id = 0; row_id < nr_planes; ++row_id) {
-//     int32_t plane_id = plane_merge_labels[row_id];
-//     bool plane_expanded = false;
-//     for (size_t col_id = row_id + 1; col_id != planes_association_mx[row_id].size(); ++col_id) {
-//       if (planes_association_mx[row_id][col_id]) {
-//         double cos_angle =
-//             plane_segments[plane_id]->getStat().getNormal().dot(plane_segments[col_id]->getStat().getNormal());
-//         double distance =
-//             pow(plane_segments[plane_id]->getStat().getNormal().dot(plane_segments[col_id]->getStat().getMean()) +
-//                     plane_segments[plane_id]->getStat().getD(),
-//                 2);
-//         if (cos_angle > config_.getFloat("minCosAngleForMerge") && distance < config_.getFloat("maxMergeDist")) {
-//           (*plane_segments[plane_id]) += (*plane_segments[col_id]);
-//           plane_merge_labels[col_id] = plane_id;
-//           plane_expanded = true;
-//         } else {
-//           planes_association_mx[row_id][col_id] = false;
-//         }
-//       }
-//     }
-//     if (plane_expanded) plane_segments[plane_id]->calculateStats();
-//   }
-//
-//   return plane_merge_labels;
-// }
-//
-// void PlaneExtractor::Impl::cleanArtifacts() {
-//   cell_grid_.resize(nr_total_cells_, nullptr);
-//   labels_map_.setZero();
-// }
-//
- void PlaneExtractor::Impl::growSeed(int32_t x, int32_t y, int32_t prev_index, std::vector<bool> const& unassigned,
-                                     std::vector<bool>* activation_map, std::vector<float> const& cell_dist_tols)
-                                     const {
-   int32_t index = x + nr_horizontal_cells_ * y;
-   if (index >= nr_total_cells_) throw std::out_of_range("growSeed: Index out of total cell number");
-   if (!unassigned[index] || (*activation_map)[index]) {
-     return;
-   }
+void PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
+                                    std::vector<bool>* activation_map, CellGrid const& cell_grid) const {
+  if (!unassigned[seed_id] || activation_map->at(seed_id)) {
+    return;
+  }
 
-   double d_1 = cell_grid_[prev_index]->getStat().getD();
-   Eigen::Vector3f normal_1 = cell_grid_[prev_index]->getStat().getNormal();
-   Eigen::Vector3f normal_2 = cell_grid_[index]->getStat().getNormal();
-   Eigen::Vector3f mean_2 = cell_grid_[index]->getStat().getMean();
+  std::queue<Eigen::Index> seed_queue;
+  seed_queue.push(seed_id);
+  activation_map->at(seed_id) = true;
 
-   double cos_angle = normal_1.dot(normal_2);
-   double merge_dist = pow(normal_1.dot(mean_2) + d_1, 2);
-   if (cos_angle < config_.getFloat("minCosAngleForMerge") || merge_dist > cell_dist_tols[index]) {
-     return;
-   }
+  while (!seed_queue.empty()) {
+    Eigen::Index current_seed = seed_queue.front();
+    seed_queue.pop();
 
-   activation_map->at(index) = true;
-   if (x > 0) growSeed(x - 1, y, index, unassigned, activation_map, cell_dist_tols);
-   if (x < nr_horizontal_cells_ - 1) growSeed(x + 1, y, index, unassigned, activation_map, cell_dist_tols);
-   if (y > 0)
-     growSeed(x, y - 1, index, unassigned, activation_map, cell_dist_tols);
-   if (y < nr_vertical_cells_ - 1)
-     growSeed(x, y + 1, index, unassigned, activation_map, cell_dist_tols);
- }
+    double d_current = cell_grid[current_seed].getStat().getD();
+    Eigen::Vector3f normal_current = cell_grid[current_seed].getStat().getNormal();
 
-// std::vector<std::vector<bool>> PlaneExtractor::Impl::getConnectedComponents(size_t nr_planes) const {
-//   std::vector<std::vector<bool>> planes_assoc_matrix(nr_planes, std::vector<bool>(nr_planes, false));
-//
-//   for (int32_t row_id = 0; row_id < labels_map_.rows() - 1; ++row_id) {
-//     auto row = labels_map_.row(row_id);
-//     auto next_row = labels_map_.row(row_id + 1);
-//     for (int32_t col_id = 0; col_id < labels_map_.cols() - 1; ++col_id) {
-//       auto plane_id = row[col_id];
-//       if (plane_id > 0) {
-//         if (row[col_id + 1] > 0 && plane_id != row[col_id + 1])
-//           planes_assoc_matrix[plane_id - 1][row[col_id + 1] - 1] = true;
-//         if (next_row[col_id] > 0 && plane_id != next_row[col_id])
-//           planes_assoc_matrix[plane_id - 1][next_row[col_id] - 1] = true;
-//       }
-//     }
-//   }
-//   for (int32_t row_id = 0; row_id < planes_assoc_matrix.size(); ++row_id) {
-//     for (int32_t col_id = 0; col_id < planes_assoc_matrix.size(); ++col_id) {
-//       planes_assoc_matrix[row_id][col_id] = planes_assoc_matrix[row_id][col_id] ||
-//       planes_assoc_matrix[col_id][row_id];
-//     }
-//   }
-//
-//   return planes_assoc_matrix;
-// }
-//
-// Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& merge_labels) {
-//   Eigen::MatrixXi labels(Eigen::MatrixXi::Zero(image_height_, image_width_));
-//
-//   int32_t cell_width = config_.getInt("patchSize");
-//   int32_t cell_height = config_.getInt("patchSize");
-//
-//   int32_t stacked_cell_id = 0;
-//   for (auto row = 0; row < labels_map_.rows(); ++row) {
-//     for (auto col = 0; col < labels_map_.cols(); ++col) {
-//       auto cell_row = stacked_cell_id / nr_horizontal_cells_;
-//       auto cell_col = stacked_cell_id % nr_horizontal_cells_;
-//       // Fill cell with label
-//       auto label_row = cell_row * cell_height;
-//       auto label_col = cell_col * cell_width;
-//       for (auto i = label_row; i < label_row + cell_height; ++i) {
-//         for (auto j = label_col; j < label_col + cell_width; ++j) {
-//           auto label = labels_map_.row(row)[col];
-//           labels.row(i)[j] = (label == 0 ? 0 : merge_labels[label - 1] + 1);
-//         }
-//       }
-//       ++stacked_cell_id;
-//     }
-//   }
-//
-//   return labels.reshaped<Eigen::RowMajor>();
-// }
+    for (auto neighbour : cell_grid.getNeighbours(current_seed)) {
+      if (!unassigned[neighbour] || activation_map->at(neighbour)) {
+        continue;
+      }
+      Eigen::Vector3f normal_neighbour = cell_grid[neighbour].getStat().getNormal();
+      Eigen::Vector3f mean_neighbour = cell_grid[neighbour].getStat().getMean();
+
+      double cos_angle = normal_current.dot(normal_neighbour);
+      double merge_dist = pow(normal_current.dot(mean_neighbour) + d_current, 2);
+      if (cos_angle >= config_.getFloat("minCosAngleForMerge") &&
+          merge_dist <= cell_grid[neighbour].getMergeTolerance()) {
+        activation_map->at(neighbour) = true;
+        seed_queue.push(static_cast<Eigen::Index>(neighbour));
+      }
+    }
+  }
+}
+
+std::vector<int32_t> PlaneExtractor::Impl::findMergedLabels(std::vector<CellSegment>* plane_segments) {
+  size_t nr_planes = plane_segments->size();
+  // Boolean matrix [nr_planes X nr_planes]
+  auto planes_association_mx = getConnectedComponents(nr_planes);
+  std::vector<int32_t> plane_merge_labels(nr_planes);
+  std::iota(plane_merge_labels.begin(), plane_merge_labels.end(), 0);
+
+  // Connect compatible planes
+  for (size_t row_id = 0; row_id < nr_planes; ++row_id) {
+    int32_t plane_id = plane_merge_labels[row_id];
+    bool plane_expanded = false;
+    for (size_t col_id = row_id + 1; col_id != planes_association_mx[row_id].size(); ++col_id) {
+      if (planes_association_mx[row_id][col_id]) {
+        double cos_angle =
+            plane_segments->at(plane_id).getStat().getNormal().dot(plane_segments->at(col_id).getStat().getNormal());
+        double distance =
+            pow(plane_segments->at(plane_id).getStat().getNormal().dot(plane_segments->at(col_id).getStat().getMean()) +
+                    plane_segments->at(plane_id).getStat().getD(),
+                2);
+        if (cos_angle > config_.getFloat("minCosAngleForMerge") && distance < config_.getFloat("maxMergeDist")) {
+          plane_segments->at(plane_id) += plane_segments->at(col_id);
+          plane_merge_labels[col_id] = plane_id;
+          plane_expanded = true;
+        } else {
+          planes_association_mx[row_id][col_id] = false;
+        }
+      }
+    }
+    if (plane_expanded) plane_segments->at(plane_id).calculateStats();
+  }
+
+  return plane_merge_labels;
+}
+
+void PlaneExtractor::Impl::cleanArtifacts() { labels_map_.setZero(); }
+
+std::vector<std::vector<bool>> PlaneExtractor::Impl::getConnectedComponents(size_t nr_planes) const {
+  std::vector<std::vector<bool>> planes_assoc_matrix(nr_planes, std::vector<bool>(nr_planes, false));
+
+  for (int32_t row_id = 0; row_id < labels_map_.rows() - 1; ++row_id) {
+    auto row = labels_map_.row(row_id);
+    auto next_row = labels_map_.row(row_id + 1);
+    for (int32_t col_id = 0; col_id < labels_map_.cols() - 1; ++col_id) {
+      auto plane_id = row[col_id];
+      if (plane_id > 0) {
+        if (row[col_id + 1] > 0 && plane_id != row[col_id + 1])
+          planes_assoc_matrix[plane_id - 1][row[col_id + 1] - 1] = true;
+        if (next_row[col_id] > 0 && plane_id != next_row[col_id])
+          planes_assoc_matrix[plane_id - 1][next_row[col_id] - 1] = true;
+      }
+    }
+  }
+  for (int32_t row_id = 0; row_id < planes_assoc_matrix.size(); ++row_id) {
+    for (int32_t col_id = 0; col_id < planes_assoc_matrix.size(); ++col_id) {
+      planes_assoc_matrix[row_id][col_id] = planes_assoc_matrix[row_id][col_id] || planes_assoc_matrix[col_id][row_id];
+    }
+  }
+
+  return planes_assoc_matrix;
+}
+
+Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& merge_labels) {
+  Eigen::MatrixXi labels(Eigen::MatrixXi::Zero(image_height_, image_width_));
+
+  int32_t cell_width = config_.getInt("patchSize");
+  int32_t cell_height = config_.getInt("patchSize");
+
+  int32_t stacked_cell_id = 0;
+  for (auto row = 0; row < labels_map_.rows(); ++row) {
+    for (auto col = 0; col < labels_map_.cols(); ++col) {
+      auto cell_row = stacked_cell_id / nr_horizontal_cells_;
+      auto cell_col = stacked_cell_id % nr_horizontal_cells_;
+      // Fill cell with label
+      auto label_row = cell_row * cell_height;
+      auto label_col = cell_col * cell_width;
+      for (auto i = label_row; i < label_row + cell_height; ++i) {
+        for (auto j = label_col; j < label_col + cell_width; ++j) {
+          auto label = labels_map_.row(row)[col];
+          labels.row(i)[j] = (label == 0 ? 0 : merge_labels[label - 1] + 1);
+        }
+      }
+      ++stacked_cell_id;
+    }
+  }
+
+  return labels.reshaped<Eigen::RowMajor>();
+}
 
 #ifdef DEBUG_DEPLEX
 

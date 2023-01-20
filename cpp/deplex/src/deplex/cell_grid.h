@@ -27,9 +27,11 @@ class CellGrid {
 
   CellSegment const& getByCoordinates(size_t x, size_t y) const;
 
-  CellSegment const& operator[] (size_t cell_id) const;
+  CellSegment const& operator[](size_t cell_id) const;
 
   std::vector<bool> const& getPlanarMask() const;
+
+  std::vector<size_t> getNeighbours(size_t cell_id) const;
 
   size_t size() const;
 
