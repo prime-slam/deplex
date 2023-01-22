@@ -16,11 +16,12 @@ int main(int argc, char* argv[]) {
   int NUMBER_OF_RUNS = (argc > 1 ? std::stoi(argv[1]) : 1);
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
-
-  auto algorithm = deplex::PlaneExtractor(IMAGE_HEIGHT, IMAGE_WIDTH, config);
-
   Eigen::Matrix3f intrinsics(deplex::utils::readIntrinsics(intrinsics_path));
-  Eigen::MatrixXf pcd_array = deplex::utils::Image(image_path).toPointCloud(intrinsics);
+  deplex::utils::Image image(image_path);
+  Eigen::MatrixXf pcd_array = image.toPointCloud(intrinsics);
+
+  auto algorithm = deplex::PlaneExtractor(image.getHeight(), image.getWidth(), config);
+
   int found_planes = 0;
   auto start = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < NUMBER_OF_RUNS; ++i) {
