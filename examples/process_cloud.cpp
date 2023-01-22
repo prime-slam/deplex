@@ -12,12 +12,11 @@ int main(int argc, char* argv[]) {
   std::filesystem::path intrinsics_path = data_dir / "configs/TUM_fr3_long_val.K";
   std::filesystem::path config_path = data_dir / "configs/TUM_fr3_long_val.ini";
 
-  constexpr int IMAGE_HEIGHT = 480, IMAGE_WIDTH = 640;
   int NUMBER_OF_RUNS = (argc > 1 ? std::stoi(argv[1]) : 1);
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
-  Eigen::Matrix3f intrinsics(deplex::utils::readIntrinsics(intrinsics_path));
-  deplex::utils::Image image(image_path);
+  Eigen::Matrix3f intrinsics(deplex::utils::readIntrinsics(intrinsics_path.string()));
+  deplex::utils::Image image(image_path.string());
   Eigen::MatrixXf pcd_array = image.toPointCloud(intrinsics);
 
   auto algorithm = deplex::PlaneExtractor(image.getHeight(), image.getWidth(), config);
