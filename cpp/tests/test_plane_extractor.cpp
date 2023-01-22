@@ -18,15 +18,17 @@
 #include <deplex/config.h>
 #include <deplex/plane_extractor.h>
 #include <deplex/utils/eigen_io.h>
+#include <deplex/utils/image.h>
 
 #include "globals.hpp"
 
 namespace deplex {
 namespace {
 TEST(TUMPlaneExtraction, DefaultConfigExtraction) {
-  auto algorithm = PlaneExtractor(test_globals::tum::image_height, test_globals::tum::image_width);
-  auto points = utils::readPointCloudCSV(test_globals::tum::sample_image_points);
-  auto labels = algorithm.process(points);
+  auto image = utils::Image(test_globals::tum::sample_image);
+  auto algorithm = PlaneExtractor(image.getHeight(), image.getWidth());
+
+  auto labels = algorithm.process(image.toPointCloud(utils::readIntrinsics(test_globals::tum::intrinsics)));
   ASSERT_GE(labels.maxCoeff(), 0);
   ASSERT_LE(labels.maxCoeff(), 30);
 }
@@ -35,8 +37,9 @@ TEST(TUMPlaneExtraction, ZeroLeadingConfigExtraction) {
   auto config = config::Config(test_globals::tum::config);
   config.updateValue("minRegionPlanarityScore", "5000");
 
-  auto algorithm = PlaneExtractor(test_globals::tum::image_height, test_globals::tum::image_width, config);
-  auto points = utils::readPointCloudCSV(test_globals::tum::sample_image_points);
+  auto image = utils::Image(test_globals::tum::sample_image);
+  auto algorithm = PlaneExtractor(image.getHeight(), image.getWidth(), config);
+  auto points = image.toPointCloud(utils::readIntrinsics(test_globals::tum::intrinsics));
   auto labels = algorithm.process(points);
   ASSERT_TRUE(labels.isZero());
   ASSERT_EQ(points.rows(), labels.size());

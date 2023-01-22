@@ -29,6 +29,8 @@ const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCol
  */
 Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter = ',');
 
+Eigen::Matrix3f readIntrinsics(std::string const& intrinsics_path);
+
 /**
  * Write point cloud points to file
  *

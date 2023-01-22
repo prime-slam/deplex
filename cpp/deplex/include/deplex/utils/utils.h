@@ -16,4 +16,4 @@
 #pragma once
 
 #include <deplex/utils/eigen_io.h>
-#include <deplex/utils/image_to_cloud.h>
+#include <deplex/utils/image.h>
