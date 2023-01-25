@@ -11,6 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install build utils
+        run: |
+          brew install coreutils \
+          && brew install gcc
+
       - name: Build Python wheel
         run: |
           chmod -R +x tools/* \
