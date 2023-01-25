@@ -13,7 +13,6 @@ jobs:
 
       - name: Install build utils
         run: |
-          pip install wheel
           brew install coreutils \
           && brew install gcc
 
