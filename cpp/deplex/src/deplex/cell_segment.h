@@ -33,9 +33,12 @@ class CellSegment {
 
   bool isPlanar() const;
 
+  float getMergeTolerance() const;
+
  private:
   CellSegmentStat stats_;
   bool is_planar_;
+  float merge_tolerance_;
 
   bool hasValidPoints(Eigen::MatrixXf const& cell_points, size_t valid_pts_threshold) const;
 
@@ -49,5 +52,8 @@ class CellSegment {
                             int32_t max_number_depth_disc) const;
 
   bool hasSmallPlaneError(float depth_sigma_coeff, float depth_sigma_margin) const;
+
+  float calculateMergeTolerance(Eigen::MatrixXf const& cell_points, float cos_angle, float min_merge_dist,
+                                float max_merge_dist) const;
 };
 }  // namespace deplex

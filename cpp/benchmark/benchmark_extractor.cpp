@@ -13,26 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
+#include <benchmark/benchmark.h>
+#include <deplex/deplex.h>
 
-#include <vector>
-
-#include <Eigen/Core>
-
+#include "globals.hpp"
 
 namespace deplex {
-class NormalsHistogram {
- public:
-  NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals);
+namespace {
+void BM_SINGLE_TUM(benchmark::State& state) {
+  auto config = config::Config(bench_globals::tum::config);
+  auto algorithm = PlaneExtractor(480, 640, config);
 
-  std::vector<int32_t> getPointsFromMostFrequentBin() const;
+  auto cloud = utils::readPointCloudCSV(bench_globals::tum::sample_image_points);
+  for (auto _ : state) {
+    for (int i = 0; i < 60; ++i) {
+      algorithm.process(cloud);
+    }
+  }
+}
 
-  void removePoint(int32_t point_id);
-
- private:
-  std::vector<int32_t> bins_;
-  std::vector<int32_t> hist_;
-  int32_t nr_bins_per_coord_;
-  int32_t nr_points_;
-};
+BENCHMARK(BM_SINGLE_TUM)->Unit(benchmark::TimeUnit::kSecond)->Iterations(30);
+}  // namespace
 }  // namespace deplex
+
+BENCHMARK_MAIN();

@@ -10,21 +10,16 @@ set(SRC_FILES
     ${TARGET_SOURCE_DIR}/deplex/config.cpp
     ${TARGET_SOURCE_DIR}/deplex/cell_segment_stat.cpp
     ${TARGET_SOURCE_DIR}/deplex/cell_segment.cpp
+    ${TARGET_SOURCE_DIR}/deplex/cell_grid.cpp
     ${TARGET_SOURCE_DIR}/deplex/normals_histogram.cpp
     ${TARGET_SOURCE_DIR}/deplex/plane_extractor.cpp
-    ${TARGET_SOURCE_DIR}/deplex/utils/image_to_cloud.cpp
     ${TARGET_SOURCE_DIR}/deplex/utils/eigen_io.cpp
+    ${TARGET_SOURCE_DIR}/deplex/utils/image.cpp
 )
 #####################################
 # Required packages
 #####################################
 find_package(Eigen3 REQUIRED)
-
-#####################################
-# Optional packages
-#####################################
-# OpenCV is used for IO-operations with images
-find_package(OpenCV QUIET)
 
 #####################################
 # Define Target
@@ -56,11 +51,6 @@ target_include_directories(
 )
 
 target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
-
-if (OpenCV_FOUND)
-    target_link_libraries(${TARGET_NAME} PRIVATE ${OpenCV_LIBS})
-    target_compile_definitions(${TARGET_NAME} PUBLIC HAVE_OPENCV)
-endif()
 
 set_target_properties(${TARGET_NAME} PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${DEPLEX_LIB_DIR}")

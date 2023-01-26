@@ -15,24 +15,5 @@
  */
 #pragma once
 
-#include <vector>
-
-#include <Eigen/Core>
-
-
-namespace deplex {
-class NormalsHistogram {
- public:
-  NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals);
-
-  std::vector<int32_t> getPointsFromMostFrequentBin() const;
-
-  void removePoint(int32_t point_id);
-
- private:
-  std::vector<int32_t> bins_;
-  std::vector<int32_t> hist_;
-  int32_t nr_bins_per_coord_;
-  int32_t nr_points_;
-};
-}  // namespace deplex
+#include <deplex/utils/eigen_io.h>
+#include <deplex/utils/image.h>

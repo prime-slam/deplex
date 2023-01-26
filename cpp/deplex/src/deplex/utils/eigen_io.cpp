@@ -38,6 +38,22 @@ Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter) {
   return Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>(points.data(), points.size() / 3, 3);
 }
 
+Eigen::Matrix3f readIntrinsics(std::string const& intrinsics_path) {
+  std::ifstream in(intrinsics_path);
+  if (!in.is_open()) {
+    throw std::runtime_error("Error: Couldn't open intrinsics file " + intrinsics_path);
+  }
+
+  Eigen::Matrix3f K;
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      in >> K(i, j);
+    }
+  }
+
+  return K;
+}
+
 void savePointCloudCSV(Eigen::MatrixXf const& pcd_points, std::string const& path) {
   std::ofstream file(path);
   file << pcd_points.format(CSVFormat);
