@@ -13,14 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "pybind/plane_extraction/plane_extraction.h"
-#include "pybind/utils/utils.h"
+#include "utils.h"
+
+#include <deplex/utils/utils.h>
 
 namespace deplex {
-PYBIND11_MODULE(pybind, m) {
-  m.doc() = "This is pybind module";
-  pybind_plane_extraction(m);
-  pybind_utils(m);
+void pybind_utils(py::module& m) {
+  py::module m_utils = m.def_submodule("utils", "Plane Extraction utilities");
+
+  pybind_image(m_utils);
 }
 
+void pybind_image(py::module& m) {
+  py::class_<utils::Image>(m, "Image")
+      .def(py::init<std::string>(), py::arg("image_path"))
+      .def_property_readonly("height", &utils::Image::getHeight)
+      .def_property_readonly("width", &utils::Image::getWidth)
+      .def("transform_to_pcd", &utils::Image::toPointCloud, py::arg("intrinsics"));
+}
 }  // namespace deplex
