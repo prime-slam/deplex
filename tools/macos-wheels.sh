@@ -22,6 +22,3 @@ do
   cmake -B build -DPYTHON_EXECUTABLE="${PYBIN}"
   cmake --build build --target build-wheel
 done
-
-python3 -m pip install --user -q build
-python3 -m build --wheel --outdir wheelhouse/ .
