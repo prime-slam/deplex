@@ -15,6 +15,8 @@
  */
 #include "utils.h"
 
+#include <pybind11/eigen.h>
+
 #include <deplex/utils/utils.h>
 
 namespace deplex {
