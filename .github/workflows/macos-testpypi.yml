@@ -18,7 +18,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: wheels
-          path: ./build/wheels
+          path: ./wheelhouse
 
   test_wheel_macos:
     name: Test Python ${{ matrix.python-version }} wheel on MacOS

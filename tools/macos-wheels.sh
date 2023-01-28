@@ -19,8 +19,10 @@ cmake -B build -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON
 for PYBIN in /Users/runner/hostedtoolcache/Python/3.*/x64/bin/python*?[0-9]
 do
   "${PYBIN}" -m pip install wheel
-  cmake -B build -DPYTHON_EXECUTABLE="${PYBIN}" \
-                 -DCMAKE_BUILD_WITH_INSTALL_RPATH=TRUE \
-                 -DCMAKE_INSTALL_RPATH="@loader_path"
+  cmake -B build -DPYTHON_EXECUTABLE="${PYBIN}"
   cmake --build build --target build-wheel
 done
+
+python3 -m pip install delocate==0.10.4
+
+delocate-wheel -w wheelhouse -v ./build/wheels/*.whl
