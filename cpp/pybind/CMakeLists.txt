@@ -16,6 +16,7 @@ set(PYTHON_WHEEL_DST_DIR ${CMAKE_BINARY_DIR}/wheels)
 # Define sources of pybind target
 #####################################
 add_subdirectory(plane_extraction)
+add_subdirectory(utils)
 
 target_sources(pybind PRIVATE
     deplex_pybind.cpp

@@ -13,14 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "pybind/plane_extraction/plane_extraction.h"
-#include "pybind/utils/utils.h"
+#include <benchmark/benchmark.h>
+#include <deplex/deplex.h>
+
+#include "globals.hpp"
 
 namespace deplex {
-PYBIND11_MODULE(pybind, m) {
-  m.doc() = "This is pybind module";
-  pybind_plane_extraction(m);
-  pybind_utils(m);
+namespace {
+void BM_SINGLE_TUM(benchmark::State& state) {
+  auto config = config::Config(bench_globals::tum::config);
+  auto algorithm = PlaneExtractor(480, 640, config);
+
+  auto cloud = utils::readPointCloudCSV(bench_globals::tum::sample_image_points);
+  for (auto _ : state) {
+    for (int i = 0; i < 60; ++i) {
+      algorithm.process(cloud);
+    }
+  }
 }
 
+BENCHMARK(BM_SINGLE_TUM)->Unit(benchmark::TimeUnit::kSecond)->Iterations(30);
+}  // namespace
 }  // namespace deplex
+
+BENCHMARK_MAIN();
