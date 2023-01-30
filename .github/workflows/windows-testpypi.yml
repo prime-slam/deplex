@@ -1,0 +1,33 @@
+name: Windows wheel TestPyPI
+
+on: [push]
+
+jobs:
+  build_wheel_windows64:
+    name: Build wheel on ${{ matrix.os }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        arch: [ x64 ]
+    steps:
+      - uses: actions/checkout@v3
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: |
+            3.6
+            3.7
+            3.8
+            3.9
+            3.10
+
+      - name: Build Python wheel
+        run: .\tools\windows-wheels.sh
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./wheelhouse
