@@ -25,7 +25,7 @@ jobs:
             3.10
 
       - name: Build Python wheel
-        run: .\tools\windows-wheels.sh
+        run: ./tools/windows-wheels.sh
 
       - uses: actions/upload-artifact@v3
         with:
