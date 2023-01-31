@@ -16,8 +16,8 @@ SET plat="x64" || EXIT /B !ERRORLEVEL!
 :: Early check for build tools
 cmake --version || EXIT /B !ERRORLEVEL!
 
-:: Install build package
-python -m pip install --user -q build || popd && EXIT /B !ERRORLEVEL!
+:: Install wheel package
+python -m pip install --user -q wheel || popd && EXIT /B !ERRORLEVEL!
 
 :: Build wheel
 cmake -B build -G "Visual Studio 16 2019" -A %plat% -DBUILD_PYTHON=ON -DBUILD_TESTS=OFF || EXIT /B !ERRORLEVEL!
