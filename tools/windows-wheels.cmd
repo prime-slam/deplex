@@ -21,4 +21,4 @@ python -m pip install --user -q build || popd && EXIT /B !ERRORLEVEL!
 
 :: Build wheel
 cmake -B build -G "Visual Studio 16 2019" -A %plat% -DBUILD_PYTHON=ON -DBUILD_TESTS=OFF || EXIT /B !ERRORLEVEL!
-cmake --build build --config Release --target build-wheel || EXIT /B !ERRORLEVEL!
+cmake --build build --target build-wheel || EXIT /B !ERRORLEVEL!
