@@ -57,7 +57,7 @@ jobs:
         env:
           py_version: ${{ matrix.python-version }}
         run: |
-          python -m pip install .\wheels\$(dir artifact -Name | findstr deplex-.*-win_amd64.whl)
+          python -m pip install deplex --no-index --find-links .\wheels\
 
       - name: Install Test requirements
         run: |
