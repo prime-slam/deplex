@@ -35,6 +35,8 @@ file(REMOVE_RECURSE ${PYTHON_BINARY_DIR})
 set_target_properties(pybind PROPERTIES
         FOLDER "${PYTHON_BINARY_DIR}"
         LIBRARY_OUTPUT_DIRECTORY "${PYTHON_BINARY_DIR}"
+        LIBRARY_OUTPUT_DIRECTORY_RELEASE "${PYTHON_BINARY_DIR}"
+        LIBRARY_OUTPUT_DIRECTORY_DEBUG "${PYTHON_BINARY_DIR}"
 )
 
 #####################################
@@ -50,7 +52,7 @@ add_custom_target(python-package
 )
 
 add_custom_target(build-wheel
-        COMMAND ${PYTHON_EXECUTABLE} setup.py bdist_wheel --dist-dir ${PYTHON_WHEEL_DST_DIR}
+        COMMAND ${PYTHON_EXECUTABLE} -m build --wheel --outdir ${PYTHON_WHEEL_DST_DIR}
         COMMAND echo "pip wheel created at ${PYTHON_WHEEL_DST_DIR}"
         WORKING_DIRECTORY ${PYTHON_PACKAGE_DST_DIR}
         DEPENDS python-package
