@@ -1,2 +1,2 @@
 setuptools>=50.3.2
-wheel>=0.37.1
+build==0.9.0

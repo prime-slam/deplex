@@ -18,7 +18,7 @@ cmake -B build -DBUILD_TESTS=OFF -DBUILD_PYTHON=ON
 
 for PYBIN in /Users/runner/hostedtoolcache/Python/3.*/x64/bin/python*?[0-9]
 do
-  "${PYBIN}" -m pip install wheel
+  "${PYBIN}" -m pip install build
   cmake -B build -DPYTHON_EXECUTABLE="${PYBIN}"
   cmake --build build --target build-wheel
 done
