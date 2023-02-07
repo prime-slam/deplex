@@ -16,7 +16,12 @@
 #include "cell_segment.h"
 
 namespace deplex {
-CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config const& config) : is_planar_(false) {
+CellSegment::CellSegment() : stats_(), is_planar_(false), merge_tolerance_(), min_merge_cos_(), max_merge_dist_() {}
+
+CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config const& config)
+    : is_planar_(false),
+      min_merge_cos_(config.getFloat("minCosAngleForMerge")),
+      max_merge_dist_(config.getFloat("maxMergeDist")) {
   size_t valid_pts_threshold = cell_points.size() / config.getInt("minPtsPerCell");
   int32_t cell_width = config.getInt("patchSize");
   int32_t cell_height = config.getInt("patchSize");
@@ -36,6 +41,13 @@ CellSegment::CellSegment(Eigen::MatrixXf const& cell_points, config::Config cons
 CellSegment& CellSegment::operator+=(CellSegment const& other) {
   stats_ += other.stats_;
   return *this;
+}
+
+bool CellSegment::areNeighbours3D(CellSegment const& other) const {
+  if (!this->is_planar_ || !other.is_planar_) return false;
+  auto cos_angle = this->getStat().getNormal().dot(other.getStat().getNormal());
+  auto distance = pow(this->getStat().getNormal().dot(other.getStat().getMean()) + this->getStat().getD(), 2);
+  return cos_angle >= min_merge_cos_ && distance <= max_merge_dist_;
 }
 
 CellSegmentStat const& CellSegment::getStat() const { return stats_; };
