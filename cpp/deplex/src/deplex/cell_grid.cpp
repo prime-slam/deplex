@@ -64,9 +64,9 @@ std::vector<size_t> CellGrid::getNeighbours(size_t cell_id) const {
   std::vector<size_t> neighbours;
   size_t x = cell_id / number_horizontal_cells_;
   size_t y = cell_id % number_horizontal_cells_;
-  if (x - 1 >= 0) neighbours.push_back(cell_id - number_horizontal_cells_);
+  if (x >= 1) neighbours.push_back(cell_id - number_horizontal_cells_);
   if (x + 1 < number_vertical_cells_) neighbours.push_back(cell_id + number_horizontal_cells_);
-  if (y - 1 >= 0) neighbours.push_back(cell_id - 1);
+  if (y >= 1) neighbours.push_back(cell_id - 1);
   if (y + 1 < number_horizontal_cells_) neighbours.push_back(cell_id + 1);
 
   return neighbours;
