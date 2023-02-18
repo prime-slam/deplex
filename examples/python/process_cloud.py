@@ -25,6 +25,5 @@ def main():
     print(f"Number of found planes: {max(labels)}")
 
 
-
 if __name__ == '__main__':
     main()

@@ -19,14 +19,6 @@ jobs:
           chmod -R +x tools/* \
           && tools/linux-wheels.sh
 
-      - name: Install wheel
-        run: |
-          python -m pip install deplex --find-links=./wheelhouse
-
-      - name: Run example
-        run: |
-          python examples/python/process_cloud.py
-
       - uses: actions/upload-artifact@v3
         with:
           name: wheels

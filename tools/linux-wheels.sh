@@ -30,3 +30,11 @@ for v in "${PYTHON_VERSION[@]}"; do
 done
 
 auditwheel repair ./build/wheels/*.whl
+
+echo "Installing wheel and running example"
+
+for v in "${PYTHON_VERSION[@]}"; do
+  PYTHON_PATH=(/opt/python/cp"${v}"*/bin/python)
+  "${PYTHON_PATH[0]}" -m pip install deplex --find-links=./build/wheels
+  "${PYTHON_PATH[0]}" ./examples/python/process_cloud.py
+done
