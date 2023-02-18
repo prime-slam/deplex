@@ -26,3 +26,9 @@ done
 python3 -m pip install delocate==0.10.4
 
 delocate-wheel -w wheelhouse -v ./build/wheels/*.whl
+
+for PYBIN in /Users/runner/hostedtoolcache/Python/3.*/x64/bin/python*?[0-9]
+do
+  "${PYBIN}" -m pip install deplex --find-links=./build/wheels
+  "${PYBIN}" ./examples/python/process_cloud.py
+done

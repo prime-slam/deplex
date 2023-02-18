@@ -25,24 +25,24 @@ jobs:
           path: ./wheelhouse
 
 
-#  macos_wheel:
-#    name: Build wheel on ${{ matrix.os }}
-#    runs-on: ${{ matrix.os }}
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        os: [ macos-10.15 ]
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - name: Build Python wheel
-#        run: |
-#          chmod -R +x tools/* \
-#          && tools/macos-wheels.sh
-#      - uses: actions/upload-artifact@v3
-#        with:
-#          name: wheels
-#          path: ./wheelhouse
+  macos_wheel:
+    name: Build wheel on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-10.15 ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Python wheel
+        run: |
+          chmod -R +x tools/* \
+          && tools/macos-wheels.sh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./wheelhouse
 #
 #  windows_wheel:
 #    name: Build wheel on ${{ matrix.os }} ${{ matrix.arch }} Py-${{ matrix.python-version }}
