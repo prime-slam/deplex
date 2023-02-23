@@ -6,7 +6,9 @@ jobs:
   linux_wheel:
     name: Build wheel on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    container: quay.io/pypa/manylinux2014_x86_64:2022-12-11-145d107
+    container:
+      image: quay.io/pypa/manylinux2014_x86_64:2022-12-11-145d107
+      options: --user root
     strategy:
       fail-fast: false
       matrix:

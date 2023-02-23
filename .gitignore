@@ -35,6 +35,7 @@
 __pycache__
 .eggs
 deplex.egg-info/
+wheelhouse/
 
 # IDE
 .idea
