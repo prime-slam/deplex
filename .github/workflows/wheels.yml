@@ -24,6 +24,7 @@ jobs:
           chmod -R +x tools/* \
           && tools/linux-wheels.sh
           git status
+          git diff tools/macos-wheels.sh
 
       - uses: actions/upload-artifact@v3
         with:
