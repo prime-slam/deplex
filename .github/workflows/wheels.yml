@@ -16,6 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Add git safe directory
+        run: git config --global --add safe.directory /__w/deplex/deplex
+
       - name: Build Python wheel
         run: |
           chmod -R +x tools/* \
