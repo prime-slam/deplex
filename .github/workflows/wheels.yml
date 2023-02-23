@@ -23,6 +23,7 @@ jobs:
         run: |
           chmod -R +x tools/* \
           && tools/linux-wheels.sh
+          git status
 
       - uses: actions/upload-artifact@v3
         with:
@@ -38,6 +39,9 @@ jobs:
         os: [ macos-10.15 ]
     steps:
       - uses: actions/checkout@v3
+
+      - name: Git fetch
+        run: git fetch --prune --unshallow --recurse-submodules=no
 
       - name: Build Python wheel
         run: |
