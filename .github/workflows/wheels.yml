@@ -38,6 +38,7 @@ jobs:
         run: |
           chmod -R +x tools/* \
           && tools/macos-wheels.sh
+          git status
       - uses: actions/upload-artifact@v3
         with:
           name: wheels

@@ -34,6 +34,7 @@
 # Python
 __pycache__
 .eggs
+deplex.egg-info/
 
 # IDE
 .idea
