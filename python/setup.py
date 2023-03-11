@@ -2,6 +2,7 @@ from setuptools import find_packages, setup
 from setuptools.command.install import install as _install
 import ctypes
 import logging
+import os
 
 
 cmdclass = dict()
@@ -45,7 +46,10 @@ with open('requirements.txt') as f:
 print("pcks", find_packages())
 setup_args = dict(
     name="deplex",
-    version="0.0.1",
+    setuptools_git_versioning={
+        "enabled": True,
+    },
+    setup_requires=["setuptools-git-versioning<2"],
     zip_safe=False,
     install_requires=install_requires,
     packages=find_packages(),
