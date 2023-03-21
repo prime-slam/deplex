@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "deplex/utils/image.h"
+#include "deplex/utils/depth_image.h"
 
 #include <fstream>
 #include <stdexcept>
@@ -25,9 +25,9 @@
 
 namespace deplex {
 namespace utils {
-Image::Image() : image_(nullptr), width_(0), height_(0) {}
+DepthImage::DepthImage() : image_(nullptr), width_(0), height_(0) {}
 
-Image::Image(std::string const& image_path) : width_(0), height_(0) {
+DepthImage::DepthImage(std::string const& image_path) : width_(0), height_(0) {
   int32_t actual_channels = 0;
   auto data_ptr = stbi_load_16(image_path.c_str(), &width_, &height_, &actual_channels, STBI_grey);
   if (data_ptr == nullptr) {
@@ -36,11 +36,11 @@ Image::Image(std::string const& image_path) : width_(0), height_(0) {
   image_.reset(data_ptr);
 }
 
-int32_t Image::getWidth() const { return width_; }
+int32_t DepthImage::getWidth() const { return width_; }
 
-int32_t Image::getHeight() const { return height_; }
+int32_t DepthImage::getHeight() const { return height_; }
 
-Eigen::MatrixXf Image::toPointCloud(Eigen::Matrix3f const& intrinsics) const {
+Eigen::MatrixXf DepthImage::toPointCloud(Eigen::Matrix3f const& intrinsics) const {
   Eigen::VectorXf column_indices = Eigen::VectorXf::LinSpaced(width_, 0.0, width_ - 1).replicate(height_, 1);
   Eigen::VectorXf row_indices =
       Eigen::VectorXf::LinSpaced(height_, 0.0, height_ - 1).replicate(1, width_).reshaped<Eigen::RowMajor>();

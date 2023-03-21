@@ -14,7 +14,7 @@ def main():
     # Load intrinsics from file or initialize as 3x3 numpy array
     intrinsics = np.loadtxt(intrinsics_path)
     # Read image
-    image = deplex.utils.Image(str(image_path))
+    image = deplex.utils.DepthImage(str(image_path))
     # Transform image to points using camera intrinsics
     points = image.transform_to_pcd(intrinsics)
     # Read config

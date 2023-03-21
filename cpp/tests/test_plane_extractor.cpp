@@ -17,15 +17,15 @@
 
 #include <deplex/config.h>
 #include <deplex/plane_extractor.h>
+#include <deplex/utils/depth_image.h>
 #include <deplex/utils/eigen_io.h>
-#include <deplex/utils/image.h>
 
 #include "globals.hpp"
 
 namespace deplex {
 namespace {
 TEST(TUMPlaneExtraction, DefaultConfigExtraction) {
-  auto image = utils::Image(test_globals::tum::sample_image);
+  auto image = utils::DepthImage(test_globals::tum::sample_image);
   auto algorithm = PlaneExtractor(image.getHeight(), image.getWidth());
 
   auto labels = algorithm.process(image.toPointCloud(utils::readIntrinsics(test_globals::tum::intrinsics)));
@@ -37,7 +37,7 @@ TEST(TUMPlaneExtraction, ZeroLeadingConfigExtraction) {
   auto config = config::Config(test_globals::tum::config);
   config.updateValue("minRegionPlanarityScore", "5000");
 
-  auto image = utils::Image(test_globals::tum::sample_image);
+  auto image = utils::DepthImage(test_globals::tum::sample_image);
   auto algorithm = PlaneExtractor(image.getHeight(), image.getWidth(), config);
   auto points = image.toPointCloud(utils::readIntrinsics(test_globals::tum::intrinsics));
   auto labels = algorithm.process(points);

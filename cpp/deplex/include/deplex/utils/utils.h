@@ -15,5 +15,5 @@
  */
 #pragma once
 
+#include <deplex/utils/depth_image.h>
 #include <deplex/utils/eigen_io.h>
-#include <deplex/utils/image.h>

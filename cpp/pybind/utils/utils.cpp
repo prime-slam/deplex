@@ -23,14 +23,14 @@ namespace deplex {
 void pybind_utils(py::module& m) {
   py::module m_utils = m.def_submodule("utils", "Plane Extraction utilities");
 
-  pybind_image(m_utils);
+  pybind_depth_image(m_utils);
 }
 
-void pybind_image(py::module& m) {
-  py::class_<utils::Image>(m, "Image")
+void pybind_depth_image(py::module& m) {
+  py::class_<utils::DepthImage>(m, "DepthImage")
       .def(py::init<std::string>(), py::arg("image_path"))
-      .def_property_readonly("height", &utils::Image::getHeight)
-      .def_property_readonly("width", &utils::Image::getWidth)
-      .def("transform_to_pcd", &utils::Image::toPointCloud, py::arg("intrinsics"));
+      .def_property_readonly("height", &utils::DepthImage::getHeight)
+      .def_property_readonly("width", &utils::DepthImage::getWidth)
+      .def("transform_to_pcd", &utils::DepthImage::toPointCloud, py::arg("intrinsics"));
 }
 }  // namespace deplex

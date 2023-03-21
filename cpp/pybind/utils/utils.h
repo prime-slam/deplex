@@ -21,5 +21,5 @@ namespace py = pybind11;
 namespace deplex {
 void pybind_utils(py::module& m);
 
-void pybind_image(py::module& m);
+void pybind_depth_image(py::module& m);
 }  // namespace deplex

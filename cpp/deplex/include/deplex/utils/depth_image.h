@@ -21,10 +21,10 @@
 
 namespace deplex {
 namespace utils {
-class Image {
+class DepthImage {
  public:
-  Image();
-  Image(std::string const& image_path);
+  DepthImage();
+  DepthImage(std::string const& image_path);
 
   int32_t getWidth() const;
 

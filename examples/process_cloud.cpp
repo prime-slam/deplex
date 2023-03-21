@@ -1,6 +1,6 @@
 #include <deplex/plane_extractor.h>
+#include <deplex/utils/depth_image.h>
 #include <deplex/utils/eigen_io.h>
-#include <deplex/utils/image.h>
 
 #include <chrono>
 #include <filesystem>
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
   Eigen::Matrix3f intrinsics(deplex::utils::readIntrinsics(intrinsics_path.string()));
-  deplex::utils::Image image(image_path.string());
+  deplex::utils::DepthImage image(image_path.string());
   Eigen::MatrixXf pcd_array = image.toPointCloud(intrinsics);
 
   auto algorithm = deplex::PlaneExtractor(image.getHeight(), image.getWidth(), config);
