@@ -17,13 +17,12 @@
 
 #include <algorithm>
 #include <numeric>
+#include <queue>
 
 #ifdef DEBUG_DEPLEX
 #include <fstream>
 #include <iostream>
 #endif
-
-#include <queue>
 
 #include "cell_grid.h"
 #include "normals_histogram.h"
