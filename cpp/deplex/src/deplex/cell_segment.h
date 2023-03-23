@@ -23,6 +23,8 @@
 namespace deplex {
 class CellSegment {
  public:
+  CellSegment();
+
   CellSegment(Eigen::MatrixXf const& cell_points, config::Config const& config);
 
   CellSegment& operator+=(CellSegment const& other);
@@ -33,12 +35,16 @@ class CellSegment {
 
   bool isPlanar() const;
 
+  bool areNeighbours3D(CellSegment const& other) const;
+
   float getMergeTolerance() const;
 
  private:
   CellSegmentStat stats_;
   bool is_planar_;
   float merge_tolerance_;
+  float min_merge_cos_;
+  float max_merge_dist_;
 
   bool hasValidPoints(Eigen::MatrixXf const& cell_points, size_t valid_pts_threshold) const;
 
