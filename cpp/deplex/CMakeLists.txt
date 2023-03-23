@@ -14,7 +14,7 @@ set(SRC_FILES
     ${TARGET_SOURCE_DIR}/deplex/normals_histogram.cpp
     ${TARGET_SOURCE_DIR}/deplex/plane_extractor.cpp
     ${TARGET_SOURCE_DIR}/deplex/utils/eigen_io.cpp
-    ${TARGET_SOURCE_DIR}/deplex/utils/image.cpp
+    ${TARGET_SOURCE_DIR}/deplex/utils/depth_image.cpp
 )
 #####################################
 # Required packages
