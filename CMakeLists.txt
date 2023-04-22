@@ -13,6 +13,7 @@ option(BUILD_BENCHMARK "Build algorithm benchmark runner" OFF)
 option(BUILD_EXAMPLES "Build C++ examples of deplex usage" ON)
 option(BUILD_PYTHON "Build Python bindings" OFF)
 option(DEBUG_DEPLEX "Additional verbosity and results by stage" OFF)
+option(DEBUG_BENCHMARK "Disable optimizations, enable MSan and ASan" OFF)
 
 set(DEPLEX_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 
