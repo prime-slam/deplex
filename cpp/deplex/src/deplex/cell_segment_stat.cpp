@@ -66,8 +66,10 @@ void CellSegmentStat::fitPlane() {
 
   Eigen::Index min_es_ind = std::distance(eigenvalues, std::min_element(eigenvalues, eigenvalues + 3));
   Eigen::Index max_es_ind = std::distance(eigenvalues, std::max_element(eigenvalues, eigenvalues + 3));
-  Eigen::Map<Eigen::Vector3d> min_eigen_vector(eigenvectors[min_es_ind], 3);
-  Eigen::Map<Eigen::Vector3d> max_eigen_vector(eigenvectors[max_es_ind], 3);
+  Eigen::Vector3d min_eigen_vector(3);
+  for (int i = 0; i < 3; ++i) {
+    min_eigen_vector[i] = eigenvectors[i][min_es_ind];
+  }
 
   Eigen::VectorXf v = min_eigen_vector.cast<float>();
 
