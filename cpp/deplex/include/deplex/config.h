@@ -15,7 +15,7 @@
  */
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -33,7 +33,7 @@ class Config {
    *
    * @param param_map Key-value map with config parameters.
    */
-  Config(std::map<std::string, std::string> const& param_map);
+  Config(std::unordered_map<std::string, std::string> const& param_map);
 
   /**
    * Config constructor.
@@ -62,11 +62,11 @@ class Config {
   bool getBool(std::string const& name) const;
 
  private:
-  std::map<std::string, std::string> param_map_;
+  std::unordered_map<std::string, std::string> param_map_;
 
   std::string findValue(std::string const& name) const;
 
-  std::map<std::string, std::string> iniLoad(std::string const& path) const;
+  std::unordered_map<std::string, std::string> iniLoad(std::string const& path) const;
 };
 }  // namespace config
 }  // namespace deplex

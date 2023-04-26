@@ -20,7 +20,7 @@
 
 namespace deplex {
 namespace config {
-Config::Config(std::map<std::string, std::string> const& param_map) : param_map_(param_map) {}
+Config::Config(std::unordered_map<std::string, std::string> const& param_map) : param_map_(param_map) {}
 
 Config::Config(std::string const& config_path) : param_map_(iniLoad(config_path)) {}
 
@@ -42,8 +42,8 @@ std::string Config::findValue(std::string const& name) const {
   return value_ptr->second;
 }
 
-std::map<std::string, std::string> Config::iniLoad(std::string const& path) const {
-  std::map<std::string, std::string> parameters;
+std::unordered_map<std::string, std::string> Config::iniLoad(std::string const& path) const {
+  std::unordered_map<std::string, std::string> parameters;
   std::ifstream ini_file(path);
   if (!ini_file.is_open()) {
     throw std::runtime_error("Couldn't open ini file: " + path);
@@ -65,13 +65,9 @@ std::map<std::string, std::string> Config::iniLoad(std::string const& path) cons
   return parameters;
 }
 
-int32_t Config::getInt(std::string const& name) const {
-  return std::stoi(findValue(name));
-}
+int32_t Config::getInt(std::string const& name) const { return std::stoi(findValue(name)); }
 
-float Config::getFloat(std::string const& name) const {
-  return std::stof(findValue(name));
-}
+float Config::getFloat(std::string const& name) const { return std::stof(findValue(name)); }
 
 bool Config::getBool(std::string const& name) const {
   auto value = findValue(name);
