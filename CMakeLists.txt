@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18.0)
 
-project(deplex LANGUAGES CXX DESCRIPTION "Library for Depth Plane Extraction")
+project(deplex LANGUAGES CXX C DESCRIPTION "Library for Depth Plane Extraction")
 
 if (WIN32)
     set(BUILD_SHARED_LIBS OFF)
@@ -18,6 +18,7 @@ option(DEBUG_BENCHMARK "Disable optimizations, enable MSan and ASan" OFF)
 set(DEPLEX_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 
 add_subdirectory(external)
+add_subdirectory(libs)
 add_subdirectory(cpp)
 if (${BUILD_EXAMPLES})
     add_subdirectory(examples)
