@@ -30,7 +30,7 @@ CellGrid::CellGrid(Eigen::MatrixX3f const& points, config::Config const& config,
   int image_width = cell_width_ * number_horizontal_cells;
   for (Eigen::Index cell_row = 0; cell_row < number_vertical_cells; ++cell_row) {
     for (Eigen::Index cell_col = 0; cell_col < number_horizontal_cells; ++cell_col) {
-      Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> cell_points(cell_width_ * cell_height_, 3);
+      Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cell_points(cell_width_ * cell_height_, 3);
       for (int i = 0; i < cell_height_; ++i) {
         cell_points.block(i * cell_width_, 0, cell_width_, 3) = points.block(
             i * image_width + (cell_row * image_width * cell_width_) + (stacked_cell_id * cell_width_) % image_width, 0,
