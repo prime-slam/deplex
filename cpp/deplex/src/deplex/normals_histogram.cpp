@@ -18,7 +18,7 @@
 #include <cmath>
 
 namespace deplex {
-NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixXf const& normals)
+NormalsHistogram::NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixX3f const& normals)
     : nr_bins_per_coord_(nr_bins_per_coord),
       nr_points_(static_cast<int32_t>(normals.rows())),
       hist_(nr_bins_per_coord * nr_bins_per_coord, 0),

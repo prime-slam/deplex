@@ -44,7 +44,7 @@ class PlaneExtractor {
    * i.e. points that refer to organized image structure.
    * @returns 1D Array, where i-th value is plane number to which refers i-th point of point cloud.
    */
-  Eigen::VectorXi process(Eigen::MatrixXf const& pcd_array);
+  Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
 
   PlaneExtractor(PlaneExtractor&& op) noexcept;
   PlaneExtractor& operator=(PlaneExtractor&& op) noexcept;

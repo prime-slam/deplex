@@ -22,7 +22,7 @@
 namespace deplex {
 class CellGrid {
  public:
-  CellGrid(Eigen::MatrixXf const& points, config::Config const& config, int32_t number_horizontal_cells,
+  CellGrid(Eigen::MatrixX3f const& points, config::Config const& config, int32_t number_horizontal_cells,
            int32_t number_vertical_cells);
 
   size_t findLabel(size_t v);

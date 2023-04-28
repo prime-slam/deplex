@@ -33,7 +33,7 @@ class PlaneExtractor::Impl {
  public:
   Impl(int32_t image_height, int32_t image_width, config::Config config = kDefaultConfig);
 
-  Eigen::VectorXi process(Eigen::MatrixXf const& pcd_array);
+  Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
 
  private:
   config::Config config_;
@@ -93,11 +93,11 @@ PlaneExtractor& PlaneExtractor::operator=(PlaneExtractor&& op) noexcept = defaul
 PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config)
     : impl_(new Impl(image_height, image_width, config)) {}
 
-Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) { return impl_->process(pcd_array); }
+Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixX3f const& pcd_array) { return impl_->process(pcd_array); }
 
-Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) {
+Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array) {
   // 0. Stack array by cell
-  //  Eigen::MatrixXf organized_array(pcd_array.rows(), pcd_array.cols());
+  //  Eigen::MatrixX3f organized_array(pcd_array.rows(), pcd_array.cols());
   //  organizeByCell(pcd_array, &organized_array);
   // 1. Initialize cell grid (Planarity estimation)
   CellGrid cell_grid(pcd_array, config_, nr_horizontal_cells_, nr_vertical_cells_);
@@ -139,7 +139,7 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) 
 }
 
 NormalsHistogram PlaneExtractor::Impl::initializeHistogram(CellGrid const& cell_grid) {
-  Eigen::MatrixXf normals = Eigen::MatrixXf::Zero(cell_grid.size(), 3);
+  Eigen::MatrixX3f normals = Eigen::MatrixX3f::Zero(cell_grid.size(), 3);
   for (Eigen::Index i = 0; i < cell_grid.size(); ++i) {
     if (cell_grid.getPlanarMask()[i]) {
       normals.row(i) = cell_grid[i].getStat().getNormal();
