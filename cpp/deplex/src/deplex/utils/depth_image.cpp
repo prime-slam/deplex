@@ -45,7 +45,7 @@ Eigen::MatrixXf DepthImage::toPointCloud(Eigen::Matrix3f const& intrinsics) cons
   Eigen::VectorXf row_indices =
       Eigen::VectorXf::LinSpaced(height_, 0.0, height_ - 1).replicate(1, width_).reshaped<Eigen::RowMajor>();
 
-  Eigen::MatrixXf pcd_points(width_ * height_, 3);
+  Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> pcd_points(width_ * height_, 3);
 
   float fx = intrinsics.row(0)[0];
   float fy = intrinsics.row(1)[1];

@@ -39,12 +39,9 @@ class PlaneExtractor::Impl {
   config::Config config_;
   int32_t nr_horizontal_cells_;
   int32_t nr_vertical_cells_;
-  int32_t nr_total_cells_;
-  int32_t nr_pts_per_cell_;
   int32_t image_height_;
   int32_t image_width_;
   Eigen::MatrixXi labels_map_;
-  void organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out);
 
   NormalsHistogram initializeHistogram(CellGrid const& cell_grid);
 
@@ -85,8 +82,6 @@ PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Co
     : config_(config),
       nr_horizontal_cells_(image_width / config.getInt("patchSize")),
       nr_vertical_cells_(image_height / config.getInt("patchSize")),
-      nr_total_cells_(nr_horizontal_cells_ * nr_vertical_cells_),
-      nr_pts_per_cell_(pow(config.getInt("patchSize"), 2)),
       image_height_(image_height),
       image_width_(image_width),
       labels_map_(Eigen::MatrixXi::Zero(nr_vertical_cells_, nr_horizontal_cells_)) {}
@@ -102,16 +97,16 @@ Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixXf const& pcd_array) { retu
 
 Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) {
   // 0. Stack array by cell
-  Eigen::MatrixXf organized_array(pcd_array.rows(), pcd_array.cols());
-  organizeByCell(pcd_array, &organized_array);
+  //  Eigen::MatrixXf organized_array(pcd_array.rows(), pcd_array.cols());
+  //  organizeByCell(pcd_array, &organized_array);
   // 1. Initialize cell grid (Planarity estimation)
-  CellGrid cell_grid(organized_array, config_, nr_horizontal_cells_, nr_vertical_cells_);
+  CellGrid cell_grid(pcd_array, config_, nr_horizontal_cells_, nr_vertical_cells_);
 #ifdef DEBUG_DEPLEX
   planarCellsToLabels(cell_grid.getPlanarMask(), "dbg_1_planar_cells.csv");
   std::clog << "[DebugInfo] Planar cell found: "
             << std::count(cell_grid.getPlanarMask().begin(), cell_grid.getPlanarMask().end(), true) << '\n';
 #endif
-  // 2. Histogram initialization
+  // 2. Find dominant cell normals
   NormalsHistogram hist = initializeHistogram(cell_grid);
 
   // 3. Region growing
@@ -141,28 +136,6 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixXf const& pcd_array) 
   // 7. Cleanup
   cleanArtifacts();
   return labels;
-}
-
-void PlaneExtractor::Impl::organizeByCell(Eigen::MatrixXf const& pcd_array, Eigen::MatrixXf* out) {
-  int32_t patch_size = config_.getInt("patchSize");
-  int32_t mxn = image_width_ * image_height_;
-  int32_t mxn2 = 2 * mxn;
-
-  int stacked_id = 0;
-  for (int r = 0; r < image_height_; r++) {
-    int cell_r = r / patch_size;
-    int local_r = r % patch_size;
-    for (int c = 0; c < image_width_; c++) {
-      int cell_c = c / patch_size;
-      int local_c = c % patch_size;
-      auto shift = (cell_r * nr_horizontal_cells_ + cell_c) * patch_size * patch_size + local_r * patch_size + local_c;
-
-      *(out->data() + shift) = *(pcd_array.data() + stacked_id);
-      *(out->data() + mxn + shift) = *(pcd_array.data() + mxn + stacked_id);
-      *(out->data() + mxn2 + shift) = *(pcd_array.data() + mxn2 + stacked_id);
-      stacked_id++;
-    }
-  }
 }
 
 NormalsHistogram PlaneExtractor::Impl::initializeHistogram(CellGrid const& cell_grid) {
