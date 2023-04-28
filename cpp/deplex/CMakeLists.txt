@@ -43,6 +43,10 @@ if (DEBUG_DEPLEX)
     target_compile_definitions(${TARGET_NAME} PRIVATE DEBUG_DEPLEX)
 endif()
 
+if (BENCHMARK_LOGGING)
+    target_compile_definitions(${TARGET_NAME} PRIVATE BENCHMARK_LOGGING)
+endif()
+
 if (DEBUG_BENCHMARK)
     message("Disabling optimizations")
     target_compile_options(${TARGET_NAME} PRIVATE -pg -O0)

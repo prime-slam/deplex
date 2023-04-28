@@ -18,14 +18,25 @@
 #include <algorithm>
 #include <numeric>
 #include <queue>
-
-#ifdef DEBUG_DEPLEX
+#if defined(DEBUG_DEPLEX) || defined(BENCHMARK_LOGGING)
 #include <fstream>
 #include <iostream>
+#endif
+#ifdef BENCHMARK_LOGGING
+#include <chrono>
 #endif
 
 #include "cell_grid.h"
 #include "normals_histogram.h"
+
+#ifdef BENCHMARK_LOGGING
+namespace {
+template <typename T, typename Time>
+inline size_t get_benchmark_time(Time start_time) {
+  return std::chrono::duration_cast<T>(std::chrono::high_resolution_clock::now() - start_time).count();
+}
+}  // namespace
+#endif
 
 namespace deplex {
 
@@ -96,21 +107,38 @@ PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width, config
 Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixX3f const& pcd_array) { return impl_->process(pcd_array); }
 
 Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array) {
-  // 0. Stack array by cell
-  //  Eigen::MatrixX3f organized_array(pcd_array.rows(), pcd_array.cols());
-  //  organizeByCell(pcd_array, &organized_array);
   // 1. Initialize cell grid (Planarity estimation)
+#ifdef BENCHMARK_LOGGING
+  auto time_init_cell_grid = std::chrono::high_resolution_clock::now();
+#endif
   CellGrid cell_grid(pcd_array, config_, nr_horizontal_cells_, nr_vertical_cells_);
+#ifdef BENCHMARK_LOGGING
+  std::clog << "[BenchmarkLogging] Cell Grid Initialization: "
+            << get_benchmark_time<decltype(std::chrono::microseconds())>(time_init_cell_grid) << '\n';
+#endif
 #ifdef DEBUG_DEPLEX
   planarCellsToLabels(cell_grid.getPlanarMask(), "dbg_1_planar_cells.csv");
   std::clog << "[DebugInfo] Planar cell found: "
             << std::count(cell_grid.getPlanarMask().begin(), cell_grid.getPlanarMask().end(), true) << '\n';
 #endif
   // 2. Find dominant cell normals
+#ifdef BENCHMARK_LOGGING
+  auto time_init_histogram = std::chrono::high_resolution_clock::now();
+#endif
   NormalsHistogram hist = initializeHistogram(cell_grid);
-
+#ifdef BENCHMARK_LOGGING
+  std::clog << "[BenchmarkLogging] Histogram Initialization: "
+            << get_benchmark_time<decltype(std::chrono::microseconds())>(time_init_histogram) << '\n';
+#endif
   // 3. Region growing
+#ifdef BENCHMARK_LOGGING
+  auto time_region_growing = std::chrono::high_resolution_clock::now();
+#endif
   auto plane_segments = createPlaneSegments(cell_grid, hist);
+#ifdef BENCHMARK_LOGGING
+  std::clog << "[BenchmarkLogging] Region Growing: "
+            << get_benchmark_time<decltype(std::chrono::microseconds())>(time_region_growing) << '\n';
+#endif
 #ifdef DEBUG_DEPLEX
   std::clog << "[DebugInfo] Plane segments found: " << (plane_segments.empty() ? 0 : plane_segments.size() - 1) << '\n';
 #endif
@@ -118,7 +146,14 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
     return Eigen::VectorXi::Zero(pcd_array.rows());
   }
   // 5. Merge planes
+#ifdef BENCHMARK_LOGGING
+  auto time_merge_planes = std::chrono::high_resolution_clock::now();
+#endif
   std::vector<int32_t> merge_labels = findMergedLabels(&plane_segments);
+#ifdef BENCHMARK_LOGGING
+  std::clog << "[BenchmarkLogging] Merge Planes: "
+            << get_benchmark_time<decltype(std::chrono::microseconds())>(time_merge_planes) << '\n';
+#endif
 #ifdef DEBUG_DEPLEX
   std::vector<int32_t> sorted_labels(merge_labels);
   std::sort(sorted_labels.begin(), sorted_labels.end());
@@ -127,7 +162,14 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
             << std::distance(sorted_labels.begin(), std::unique(sorted_labels.begin(), sorted_labels.end())) - 1
             << '\n';
 #endif
+#ifdef BENCHMARK_LOGGING
+  auto time_labels_creation = std::chrono::high_resolution_clock::now();
+#endif
   Eigen::VectorXi labels = toImageLabels(merge_labels);
+#ifdef BENCHMARK_LOGGING
+  std::clog << "[BenchmarkLogging] Labels creation: "
+            << get_benchmark_time<decltype(std::chrono::microseconds())>(time_labels_creation) << '\n';
+#endif
 #ifdef DEBUG_DEPLEX
   std::ofstream of("dbg_3_labels.csv");
   of << labels.reshaped<Eigen::RowMajor>(image_height_, image_width_)
