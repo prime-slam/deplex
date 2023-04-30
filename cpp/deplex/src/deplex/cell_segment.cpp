@@ -63,7 +63,7 @@ bool CellSegment::hasValidPoints(Eigen::MatrixX3f const& cell_points, size_t val
   return valid_pts >= valid_pts_threshold;
 }
 
-bool CellSegment::isHorizontalContinuous(Eigen::MatrixX3f const& cell_z, float depth_disc_threshold,
+bool CellSegment::isHorizontalContinuous(Eigen::MatrixXf const& cell_z, float depth_disc_threshold,
                                          int32_t max_number_depth_disc) const {
   Eigen::Index middle = cell_z.rows() / 2;
   float prev_depth = cell_z(middle, 0);
@@ -79,7 +79,7 @@ bool CellSegment::isHorizontalContinuous(Eigen::MatrixX3f const& cell_z, float d
   return disc_count < max_number_depth_disc;
 }
 
-bool CellSegment::isVerticalContinuous(Eigen::MatrixX3f const& cell_z, float depth_disc_threshold,
+bool CellSegment::isVerticalContinuous(Eigen::MatrixXf const& cell_z, float depth_disc_threshold,
                                        int32_t max_number_depth_disc) const {
   Eigen::Index middle = cell_z.cols() / 2;
   float prev_depth = cell_z(0, middle);
@@ -97,7 +97,8 @@ bool CellSegment::isVerticalContinuous(Eigen::MatrixX3f const& cell_z, float dep
 
 bool CellSegment::isDepthContinuous(Eigen::MatrixX3f const& cell_points, int32_t cell_width, int32_t cell_height,
                                     float depth_disc_threshold, int32_t max_number_depth_disc) const {
-  Eigen::MatrixX3f cell_z = cell_points.col(2).reshaped(cell_width, cell_height);
+  // TODO: Meaningless reshape?
+  Eigen::MatrixXf cell_z = cell_points.col(2).reshaped(cell_width, cell_height);
 
   return isHorizontalContinuous(cell_z, depth_disc_threshold, max_number_depth_disc) &&
          isVerticalContinuous(cell_z, depth_disc_threshold, max_number_depth_disc);
