@@ -63,13 +63,13 @@ bool CellSegment::hasValidPoints(Eigen::MatrixX3f const& cell_points, size_t val
   return valid_pts >= valid_pts_threshold;
 }
 
-bool CellSegment::isHorizontalContinuous(Eigen::MatrixXf const& cell_z, float depth_disc_threshold,
-                                         int32_t max_number_depth_disc) const {
-  Eigen::Index middle = cell_z.rows() / 2;
-  float prev_depth = cell_z(middle, 0);
+bool CellSegment::isHorizontalContinuous(Eigen::MatrixX3f const& cell_points, int32_t cell_width, int32_t cell_height,
+                                         float depth_disc_threshold, int32_t max_number_depth_disc) const {
+  Eigen::Index middle = cell_width * cell_height / 2;
+  float prev_depth = cell_points.col(2)(middle);
   int32_t disc_count = 0;
-  for (Eigen::Index col = 0; col < cell_z.cols(); ++col) {
-    float curr_depth = cell_z(middle, col);
+  for (Eigen::Index i = middle; i < middle + cell_width; ++i) {
+    float curr_depth = cell_points.col(2)(i);
     if (curr_depth > 0 && fabsf(curr_depth - prev_depth) < depth_disc_threshold) {
       prev_depth = curr_depth;
     } else if (curr_depth > 0)
@@ -79,13 +79,12 @@ bool CellSegment::isHorizontalContinuous(Eigen::MatrixXf const& cell_z, float de
   return disc_count < max_number_depth_disc;
 }
 
-bool CellSegment::isVerticalContinuous(Eigen::MatrixXf const& cell_z, float depth_disc_threshold,
-                                       int32_t max_number_depth_disc) const {
-  Eigen::Index middle = cell_z.cols() / 2;
-  float prev_depth = cell_z(0, middle);
+bool CellSegment::isVerticalContinuous(Eigen::MatrixX3f const& cell_points, int32_t cell_width,
+                                       float depth_disc_threshold, int32_t max_number_depth_disc) const {
+  float prev_depth = cell_points.col(2)(cell_width / 2);
   int32_t disc_count = 0;
-  for (Eigen::Index row = 0; row < cell_z.rows(); ++row) {
-    float curr_depth = cell_z(row, middle);
+  for (Eigen::Index i = cell_width / 2; i < cell_points.rows(); i += cell_width) {
+    float curr_depth = cell_points.col(2)(i);
     if (curr_depth > 0 && fabsf(curr_depth - prev_depth) < depth_disc_threshold) {
       prev_depth = curr_depth;
     } else if (curr_depth > 0)
@@ -97,11 +96,8 @@ bool CellSegment::isVerticalContinuous(Eigen::MatrixXf const& cell_z, float dept
 
 bool CellSegment::isDepthContinuous(Eigen::MatrixX3f const& cell_points, int32_t cell_width, int32_t cell_height,
                                     float depth_disc_threshold, int32_t max_number_depth_disc) const {
-  // TODO: Meaningless reshape?
-  Eigen::MatrixXf cell_z = cell_points.col(2).reshaped(cell_width, cell_height);
-
-  return isHorizontalContinuous(cell_z, depth_disc_threshold, max_number_depth_disc) &&
-         isVerticalContinuous(cell_z, depth_disc_threshold, max_number_depth_disc);
+  return isHorizontalContinuous(cell_points, cell_width, cell_height, depth_disc_threshold, max_number_depth_disc) &&
+         isVerticalContinuous(cell_points, cell_width, depth_disc_threshold, max_number_depth_disc);
 }
 
 bool CellSegment::hasSmallPlaneError(float depth_sigma_coeff, float depth_sigma_margin) const {

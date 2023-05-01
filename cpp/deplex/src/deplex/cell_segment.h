@@ -51,10 +51,10 @@ class CellSegment {
   bool isDepthContinuous(Eigen::MatrixX3f const& cell_points, int32_t cell_width, int32_t cell_height,
                          float depth_disc_threshold, int32_t max_number_depth_disc) const;
 
-  bool isHorizontalContinuous(Eigen::MatrixXf const& cell_z, float depth_disc_threshold,
-                              int32_t max_number_depth_disc) const;
+  bool isHorizontalContinuous(Eigen::MatrixX3f const& cell_points, int32_t cell_width, int32_t cell_height,
+                              float depth_disc_threshold, int32_t max_number_depth_disc) const;
 
-  bool isVerticalContinuous(Eigen::MatrixXf const& cell_z, float depth_disc_threshold,
+  bool isVerticalContinuous(Eigen::MatrixX3f const& cell_points, int32_t cell_width, float depth_disc_threshold,
                             int32_t max_number_depth_disc) const;
 
   bool hasSmallPlaneError(float depth_sigma_coeff, float depth_sigma_margin) const;
