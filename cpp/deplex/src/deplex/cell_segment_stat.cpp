@@ -30,7 +30,7 @@ CellSegmentStat::CellSegmentStat(Eigen::MatrixX3f const& points)
     : nr_pts_(points.rows()),
       coord_sum_(points.colwise().sum()),
       variance_(points.transpose() * points),
-      mean_(coord_sum_.cast<float>() / nr_pts_) {
+      mean_(coord_sum_ / nr_pts_) {
   fitPlane();
 }
 
@@ -38,7 +38,7 @@ CellSegmentStat& CellSegmentStat::operator+=(CellSegmentStat const& other) {
   nr_pts_ += other.nr_pts_;
   coord_sum_ += other.coord_sum_;
   variance_ += other.variance_;
-  mean_ = coord_sum_.cast<float>() / nr_pts_;
+  mean_ = coord_sum_ / nr_pts_;
   return *this;
 }
 
