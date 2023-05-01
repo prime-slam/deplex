@@ -15,6 +15,8 @@
  */
 #include "cell_grid.h"
 
+#include <utility>
+
 namespace deplex {
 CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& points, config::Config const& config,
                    int32_t number_horizontal_cells, int32_t number_vertical_cells)
@@ -26,10 +28,11 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
       component_size_(number_vertical_cells * number_horizontal_cells, 1),
       planar_mask_(number_vertical_cells * number_horizontal_cells) {
   cell_grid_.reserve(planar_mask_.size());
+  Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>> cell_points(points.data(),
+                                                                                         cell_width_ * cell_height_, 3);
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;
-    Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>> cell_points(
-        points.data() + offset, cell_width_ * cell_height_, 3);
+    new (&cell_points) decltype(cell_points)(points.data() + offset, cell_width_ * cell_height_, 3);
     cell_grid_[cell_id] = CellSegment(cell_points, config);
     parent_[cell_id] = cell_id;
     planar_mask_[cell_id] = cell_grid_[cell_id].isPlanar();
