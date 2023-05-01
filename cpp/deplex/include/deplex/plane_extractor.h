@@ -34,7 +34,7 @@ class PlaneExtractor {
    * @param image_width Image width in pixels.
    * @param config Parameters of plane extraction algorithm.
    */
-  PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config = kDefaultConfig);
+  PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config);
   ~PlaneExtractor();
 
   /**
@@ -48,8 +48,6 @@ class PlaneExtractor {
 
   PlaneExtractor(PlaneExtractor&& op) noexcept;
   PlaneExtractor& operator=(PlaneExtractor&& op) noexcept;
-
-  const static config::Config kDefaultConfig;
 
  private:
   class Impl;

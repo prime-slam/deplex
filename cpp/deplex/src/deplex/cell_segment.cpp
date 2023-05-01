@@ -19,23 +19,19 @@ namespace deplex {
 CellSegment::CellSegment() : stats_(), is_planar_(false), merge_tolerance_(), min_merge_cos_(), max_merge_dist_() {}
 
 CellSegment::CellSegment(Eigen::MatrixX3f const& cell_points, config::Config const& config)
-    : is_planar_(false),
-      min_merge_cos_(config.getFloat("minCosAngleForMerge")),
-      max_merge_dist_(config.getFloat("maxMergeDist")) {
-  size_t valid_pts_threshold = cell_points.size() / config.getInt("minPtsPerCell");
-  int32_t cell_width = config.getInt("patchSize");
-  int32_t cell_height = config.getInt("patchSize");
+    : is_planar_(false), min_merge_cos_(config.min_cos_angle_merge), max_merge_dist_(config.max_merge_dist) {
+  size_t valid_pts_threshold = cell_points.size() / config.min_pts_per_cell;
+  int32_t cell_width = config.patch_size;
+  int32_t cell_height = config.patch_size;
 
-  bool is_valid =
-      hasValidPoints(cell_points, valid_pts_threshold) &&
-      isDepthContinuous(cell_points, cell_width, cell_height, config.getFloat("depthDiscontinuityThreshold"),
-                        config.getInt("maxNumberDepthDiscontinuity"));
+  bool is_valid = hasValidPoints(cell_points, valid_pts_threshold) &&
+                  isDepthContinuous(cell_points, cell_width, cell_height, config.depth_discontinuity_threshold,
+                                    config.max_number_depth_discontinuity);
   if (!is_valid) return;
   stats_ = CellSegmentStat(cell_points);
-  is_planar_ = hasSmallPlaneError(config.getFloat("depthSigmaCoeff"), config.getFloat("depthSigmaMargin"));
+  is_planar_ = hasSmallPlaneError(config.depth_sigma_coeff, config.depth_sigma_margin);
   // TODO: add minMergeDist to config
-  merge_tolerance_ = calculateMergeTolerance(cell_points, config.getFloat("minCosAngleForMerge"), 20.0,
-                                             config.getFloat("maxMergeDist"));
+  merge_tolerance_ = calculateMergeTolerance(cell_points, config.min_cos_angle_merge, 20.0, config.max_merge_dist);
 }
 
 CellSegment& CellSegment::operator+=(CellSegment const& other) {

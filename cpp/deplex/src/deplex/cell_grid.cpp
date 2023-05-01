@@ -20,8 +20,8 @@
 namespace deplex {
 CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& points, config::Config const& config,
                    int32_t number_horizontal_cells, int32_t number_vertical_cells)
-    : cell_width_(config.getInt("patchSize")),
-      cell_height_(config.getInt("patchSize")),
+    : cell_width_(config.patch_size),
+      cell_height_(config.patch_size),
       number_horizontal_cells_(number_horizontal_cells),
       number_vertical_cells_(number_vertical_cells),
       parent_(number_vertical_cells * number_horizontal_cells),

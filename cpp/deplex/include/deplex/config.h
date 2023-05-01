@@ -15,8 +15,8 @@
  */
 #pragma once
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace deplex {
@@ -46,27 +46,18 @@ class Config {
    */
   Config(std::string const& config_path);
 
-  /**
-   * Update config parameter with new value.
-   *
-   * @param name Parameter name.
-   * @param value Parameter value.
-   * @returns false if given name is not in parameters, true otherwise
-   */
-  bool updateValue(std::string const& name, std::string const& value);
-
-  int32_t getInt(std::string const& name) const;
-
-  float getFloat(std::string const& name) const;
-
-  bool getBool(std::string const& name) const;
-
- private:
-  std::unordered_map<std::string, std::string> param_map_;
-
-  std::string findValue(std::string const& name) const;
-
-  std::unordered_map<std::string, std::string> iniLoad(std::string const& path) const;
+  const int32_t patch_size = 10;
+  const int32_t histogram_bins_per_coord = 20;
+  const float min_cos_angle_merge = 0.90;
+  const float max_merge_dist = 500;
+  const int32_t min_region_growing_candidate_size = 5;
+  const int32_t min_region_growing_cells_activated = 4;
+  const float min_region_planarity_score = 0.55;
+  const float depth_sigma_coeff = 1.425e-6;
+  const float depth_sigma_margin = 10.;
+  const int32_t min_pts_per_cell = 3;
+  const float depth_discontinuity_threshold = 160;
+  const int32_t max_number_depth_discontinuity = 1;
 };
 }  // namespace config
 }  // namespace deplex

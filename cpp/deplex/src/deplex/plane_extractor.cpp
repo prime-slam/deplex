@@ -42,7 +42,7 @@ namespace deplex {
 
 class PlaneExtractor::Impl {
  public:
-  Impl(int32_t image_height, int32_t image_width, config::Config config = kDefaultConfig);
+  Impl(int32_t image_height, int32_t image_width, config::Config config);
 
   Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
 
@@ -77,25 +77,10 @@ class PlaneExtractor::Impl {
 #endif
 };
 
-const config::Config PlaneExtractor::kDefaultConfig{{{"patchSize", "12"},
-                                                     {"histogramBinsPerCoord", "20"},
-                                                     {"minCosAngleForMerge", "0.93"},
-                                                     {"maxMergeDist", "500"},
-                                                     {"minRegionGrowingCandidateSize", "5"},
-                                                     {"minRegionGrowingCellsActivated", "4"},
-                                                     {"minRegionPlanarityScore", "0.55"},
-                                                     {"doRefinement", "true"},
-                                                     {"refinementMultiplierCoeff", "15"},
-                                                     {"depthSigmaCoeff", "1.425e-6"},
-                                                     {"depthSigmaMargin", "10"},
-                                                     {"minPtsPerCell", "3"},
-                                                     {"depthDiscontinuityThreshold", "160"},
-                                                     {"maxNumberDepthDiscontinuity", "1"}}};
-
 PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Config config)
     : config_(config),
-      nr_horizontal_cells_(image_width / config.getInt("patchSize")),
-      nr_vertical_cells_(image_height / config.getInt("patchSize")),
+      nr_horizontal_cells_(image_width / config.patch_size),
+      nr_vertical_cells_(image_height / config.patch_size),
       image_height_(image_height),
       image_width_(image_width),
       labels_map_(Eigen::MatrixXi::Zero(nr_vertical_cells_, nr_horizontal_cells_)) {}
@@ -197,8 +182,8 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
 void PlaneExtractor::Impl::cellContinuousOrganize(
     Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
     Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd) {
-  int32_t cell_width = config_.getInt("patchSize");
-  int32_t cell_height = config_.getInt("patchSize");
+  int32_t cell_width = config_.patch_size;
+  int32_t cell_height = config_.patch_size;
 
   for (Eigen::Index cell_id = 0; cell_id < nr_vertical_cells_ * nr_horizontal_cells_; ++cell_id) {
     Eigen::Index outer_cell_stride = cell_width * cell_height * cell_id;
@@ -220,7 +205,7 @@ NormalsHistogram PlaneExtractor::Impl::initializeHistogram(CellGrid const& cell_
     }
   }
 
-  int nr_bins_per_coord = config_.getInt("histogramBinsPerCoord");
+  int nr_bins_per_coord = config_.histogram_bins_per_coord;
   return NormalsHistogram{nr_bins_per_coord, normals};
 }
 
@@ -232,7 +217,7 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
   while (remaining_planar_cells > 0) {
     // 1. Seeding
     std::vector<int32_t> seed_candidates = hist.getPointsFromMostFrequentBin();
-    if (seed_candidates.size() < config_.getInt("minRegionGrowingCandidateSize")) {
+    if (seed_candidates.size() < config_.min_region_growing_candidate_size) {
       return plane_segments;
     }
     // 2. Select seed with minimum MSE
@@ -260,14 +245,14 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
     }
     size_t nr_cells_activated = std::count(activation_map.begin(), activation_map.end(), true);
 
-    if (nr_cells_activated < config_.getInt("minRegionGrowingCellsActivated")) {
+    if (nr_cells_activated < config_.min_region_growing_cells_activated) {
       continue;
     }
 
     plane_candidate.calculateStats();
 
     // 5. Model fitting
-    if (plane_candidate.getStat().getScore() > config_.getFloat("minRegionPlanarityScore")) {
+    if (plane_candidate.getStat().getScore() > config_.min_region_planarity_score) {
       plane_segments.push_back(plane_candidate);
       auto nr_curr_planes = static_cast<int32_t>(plane_segments.size());
       // Mark cells
@@ -313,8 +298,7 @@ void PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> cons
 
       double cos_angle = normal_current.dot(normal_neighbour);
       double merge_dist = pow(normal_current.dot(mean_neighbour) + d_current, 2);
-      if (cos_angle >= config_.getFloat("minCosAngleForMerge") &&
-          merge_dist <= cell_grid[neighbour].getMergeTolerance()) {
+      if (cos_angle >= config_.min_cos_angle_merge && merge_dist <= cell_grid[neighbour].getMergeTolerance()) {
         activation_map->at(neighbour) = true;
         seed_queue.push(static_cast<Eigen::Index>(neighbour));
       }
@@ -341,7 +325,7 @@ std::vector<int32_t> PlaneExtractor::Impl::findMergedLabels(std::vector<CellSegm
             pow(plane_segments->at(plane_id).getStat().getNormal().dot(plane_segments->at(col_id).getStat().getMean()) +
                     plane_segments->at(plane_id).getStat().getD(),
                 2);
-        if (cos_angle > config_.getFloat("minCosAngleForMerge") && distance < config_.getFloat("maxMergeDist")) {
+        if (cos_angle > config_.min_cos_angle_merge && distance < config_.max_merge_dist) {
           plane_segments->at(plane_id) += plane_segments->at(col_id);
           plane_merge_labels[col_id] = plane_id;
           plane_expanded = true;
@@ -386,8 +370,8 @@ std::vector<std::vector<bool>> PlaneExtractor::Impl::getConnectedComponents(size
 Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& merge_labels) {
   Eigen::MatrixXi labels(Eigen::MatrixXi::Zero(image_height_, image_width_));
 
-  int32_t cell_width = config_.getInt("patchSize");
-  int32_t cell_height = config_.getInt("patchSize");
+  int32_t cell_width = config_.patch_size;
+  int32_t cell_height = config_.patch_size;
 
   int32_t stacked_cell_id = 0;
   for (auto row = 0; row < labels_map_.rows(); ++row) {
@@ -429,8 +413,8 @@ void vectorToCSV(std::vector<std::vector<T>> const& data, std::string const& out
 void PlaneExtractor::Impl::planarCellsToLabels(std::vector<bool> const& planar_flags, std::string const& save_path) {
   std::vector<std::vector<int32_t>> labels(image_height_, std::vector<int32_t>(image_width_, 0));
 
-  int32_t cell_width = config_.getInt("patchSize");
-  int32_t cell_height = config_.getInt("patchSize");
+  int32_t cell_width = config_.patch_size;
+  int32_t cell_height = config_.patch_size;
 
   for (auto cell_id = 0; cell_id < planar_flags.size(); ++cell_id) {
     if (planar_flags[cell_id]) {
