@@ -185,6 +185,7 @@ void PlaneExtractor::Impl::cellContinuousOrganize(
   int32_t cell_width = config_.patch_size;
   int32_t cell_height = config_.patch_size;
 
+#pragma omp parallel for default(none) shared(cell_width, cell_height, organized_pcd, unorganized_data)
   for (Eigen::Index cell_id = 0; cell_id < nr_vertical_cells_ * nr_horizontal_cells_; ++cell_id) {
     Eigen::Index outer_cell_stride = cell_width * cell_height * cell_id;
     for (Eigen::Index i = 0; i < cell_height; ++i) {

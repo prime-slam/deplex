@@ -15,6 +15,7 @@ option(BUILD_PYTHON "Build Python bindings" OFF)
 option(DEBUG_DEPLEX "Additional verbosity and results by stage" OFF)
 option(DEBUG_BENCHMARK "Disable optimizations, enable MSan and ASan" OFF)
 option(BENCHMARK_LOGGING "Time logging for each algorithm stage" OFF)
+option(EXPERIMENTAL_OPENMP "Enable OpenMP parallelization" OFF)
 
 set(DEPLEX_LIB_DIR ${CMAKE_BINARY_DIR}/lib)
 
