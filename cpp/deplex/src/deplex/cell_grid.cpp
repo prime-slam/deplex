@@ -26,21 +26,13 @@ CellGrid::CellGrid(Eigen::MatrixX3f const& points, config::Config const& config,
       component_size_(number_vertical_cells * number_horizontal_cells, 1),
       planar_mask_(number_vertical_cells * number_horizontal_cells) {
   cell_grid_.reserve(planar_mask_.size());
-  int32_t stacked_cell_id = 0;
-  int image_width = cell_width_ * number_horizontal_cells;
-  for (Eigen::Index cell_row = 0; cell_row < number_vertical_cells; ++cell_row) {
-    for (Eigen::Index cell_col = 0; cell_col < number_horizontal_cells; ++cell_col) {
-      Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cell_points(cell_width_ * cell_height_, 3);
-      for (int i = 0; i < cell_height_; ++i) {
-        cell_points.block(i * cell_width_, 0, cell_width_, 3) = points.block(
-            i * image_width + (cell_row * image_width * cell_width_) + (stacked_cell_id * cell_width_) % image_width, 0,
-            cell_height_, 3);
-      }
-      parent_[stacked_cell_id] = stacked_cell_id;
-      cell_grid_.emplace_back(cell_points, config);
-      planar_mask_[stacked_cell_id] = cell_grid_[stacked_cell_id].isPlanar();
-      ++stacked_cell_id;
-    }
+  for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
+    Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;
+    Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>> cell_points(
+        points.data() + offset, cell_width_ * cell_height_, 3);
+    cell_grid_[cell_id] = CellSegment(cell_points, config);
+    parent_[cell_id] = cell_id;
+    planar_mask_[cell_id] = cell_grid_[cell_id].isPlanar();
   }
 }
 

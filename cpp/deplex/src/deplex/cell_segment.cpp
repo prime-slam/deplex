@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include "cell_segment.h"
-
+#include <iostream>
 namespace deplex {
 CellSegment::CellSegment() : stats_(), is_planar_(false), merge_tolerance_(), min_merge_cos_(), max_merge_dist_() {}
 
