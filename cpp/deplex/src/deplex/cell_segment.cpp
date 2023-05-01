@@ -31,7 +31,7 @@ CellSegment::CellSegment(Eigen::MatrixX3f const& cell_points, config::Config con
       isDepthContinuous(cell_points, cell_width, cell_height, config.getFloat("depthDiscontinuityThreshold"),
                         config.getInt("maxNumberDepthDiscontinuity"));
   if (!is_valid) return;
-  stats_ = CellSegmentStat(cell_points.cast<double>());
+  stats_ = CellSegmentStat(cell_points);
   is_planar_ = hasSmallPlaneError(config.getFloat("depthSigmaCoeff"), config.getFloat("depthSigmaMargin"));
   // TODO: add minMergeDist to config
   merge_tolerance_ = calculateMergeTolerance(cell_points, config.getFloat("minCosAngleForMerge"), 20.0,

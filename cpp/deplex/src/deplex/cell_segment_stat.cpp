@@ -26,7 +26,7 @@ extern "C" {
 namespace deplex {
 CellSegmentStat::CellSegmentStat() : nr_pts_(0), mse_(std::numeric_limits<float>::max()), score_(0) {}
 
-CellSegmentStat::CellSegmentStat(Eigen::MatrixXd const& points)
+CellSegmentStat::CellSegmentStat(Eigen::MatrixX3f const& points)
     : nr_pts_(points.rows()),
       coord_sum_(points.colwise().sum()),
       variance_(points.transpose() * points),
@@ -53,7 +53,7 @@ float CellSegmentStat::getMSE() const { return mse_; };
 float CellSegmentStat::getD() const { return d_; };
 
 void CellSegmentStat::fitPlane() {
-  Eigen::Matrix3d cov = variance_ - coord_sum_ * coord_sum_.transpose() / nr_pts_;
+  Eigen::Matrix3f cov = variance_ - coord_sum_ * coord_sum_.transpose() / nr_pts_;
   double tmp_cov[3][3];
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
@@ -71,9 +71,9 @@ void CellSegmentStat::fitPlane() {
     min_eigen_vector[i] = eigenvectors[i][min_es_ind];
   }
 
-  Eigen::VectorXf v = min_eigen_vector.cast<float>();
+  Eigen::Vector3f v = min_eigen_vector.cast<float>();
 
-  d_ = static_cast<float>(-mean_.cast<float>().dot(v));
+  d_ = -mean_.dot(v);
   // Enforce normal orientation
   normal_ = (d_ > 0 ? v : -v);
   d_ = (d_ > 0 ? d_ : -d_);
