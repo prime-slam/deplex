@@ -22,8 +22,8 @@
 namespace deplex {
 class CellGrid {
  public:
-  CellGrid(Eigen::MatrixX3f const& points, config::Config const& config, int32_t number_horizontal_cells,
-           int32_t number_vertical_cells);
+  CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& points, config::Config const& config,
+           int32_t number_horizontal_cells, int32_t number_vertical_cells);
 
   size_t findLabel(size_t v);
 

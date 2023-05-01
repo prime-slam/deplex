@@ -16,8 +16,8 @@
 #include "cell_grid.h"
 
 namespace deplex {
-CellGrid::CellGrid(Eigen::MatrixX3f const& points, config::Config const& config, int32_t number_horizontal_cells,
-                   int32_t number_vertical_cells)
+CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& points, config::Config const& config,
+                   int32_t number_horizontal_cells, int32_t number_vertical_cells)
     : cell_width_(config.getInt("patchSize")),
       cell_height_(config.getInt("patchSize")),
       number_horizontal_cells_(number_horizontal_cells),
