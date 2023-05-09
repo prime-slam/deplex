@@ -8,6 +8,11 @@ else()
     option(BUILD_SHARED_LIBS "Build shared library" ON)
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No CMAKE_BUILD_TYPE specified, default to Release.")
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 option(BUILD_TESTS "Build C++ unit-tests" ON)
 option(BUILD_BENCHMARK "Build algorithm benchmark runner" OFF)
 option(BUILD_EXAMPLES "Build C++ examples of deplex usage" ON)

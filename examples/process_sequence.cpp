@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
   std::filesystem::path intrinsics_path = data_dir / "configs/TUM_fr3_long_val.K";
   std::filesystem::path config_path = data_dir / "configs/TUM_fr3_long_val.ini";
 
-  std::string dataset_path = (argc > 1 ? argv[1] : data_dir / "tum");
+  std::string dataset_path = (argc > 1 ? argv[1] : (data_dir / "tum").string());
   int MAX_NUMBER_OF_FRAMES = (argc > 2 ? std::stoi(argv[2]) : -1);
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
   std::vector<size_t> time_vector;
   for (auto const& entry : sorted_input_data) {
     auto START_TIME = std::chrono::high_resolution_clock::now();
-    deplex::utils::DepthImage image(entry.path());
+    deplex::utils::DepthImage image(entry.path().string());
     auto algorithm = deplex::PlaneExtractor(image.getHeight(), image.getWidth(), config);
     auto labels = algorithm.process(image.toPointCloud(intrinsics));
     auto elapsed_time =

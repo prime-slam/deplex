@@ -4,7 +4,7 @@ set(DSYEV_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dsyevq3.c
 )
 
-add_library(dsyev SHARED ${DSYEV_SRC})
+add_library(dsyev ${DSYEV_SRC})
 
 target_include_directories(
     dsyev
