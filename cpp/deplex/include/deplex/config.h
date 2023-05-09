@@ -26,7 +26,7 @@ namespace config {
  *
  * One should use this class for setting custom algorithm parameters.
  */
-class Config {
+struct Config {
  public:
   /**
    * Config constructor.
@@ -46,18 +46,18 @@ class Config {
    */
   Config(std::string const& config_path);
 
-  const int32_t patch_size = 10;
-  const int32_t histogram_bins_per_coord = 20;
-  const float min_cos_angle_merge = 0.90;
-  const float max_merge_dist = 500;
-  const int32_t min_region_growing_candidate_size = 5;
-  const int32_t min_region_growing_cells_activated = 4;
-  const float min_region_planarity_score = 0.55;
-  const float depth_sigma_coeff = 1.425e-6;
-  const float depth_sigma_margin = 10.;
-  const int32_t min_pts_per_cell = 3;
-  const float depth_discontinuity_threshold = 160;
-  const int32_t max_number_depth_discontinuity = 1;
+  int32_t patch_size = 10;
+  int32_t histogram_bins_per_coord = 20;
+  float min_cos_angle_merge = 0.90;
+  float max_merge_dist = 500;
+  int32_t min_region_growing_candidate_size = 5;
+  int32_t min_region_growing_cells_activated = 4;
+  float min_region_planarity_score = 0.55;
+  float depth_sigma_coeff = 1.425e-6;
+  float depth_sigma_margin = 10.;
+  int32_t min_pts_per_cell = 3;
+  float depth_discontinuity_threshold = 160;
+  int32_t max_number_depth_discontinuity = 1;
 };
 }  // namespace config
 }  // namespace deplex
