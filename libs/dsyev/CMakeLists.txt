@@ -4,7 +4,12 @@ set(DSYEV_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dsyevq3.c
 )
 
-add_library(dsyev SHARED ${DSYEV_SRC})
+# TODO: Fix dynamic linking on macOS
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_library(dsyev STATIC ${DSYEV_SRC})
+else ()
+    add_library(dsyev SHARED ${DSYEV_SRC})
+endif ()
 
 target_include_directories(
     dsyev
@@ -14,11 +19,6 @@ target_include_directories(
     PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 )
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set_target_properties(dsyev PROPERTIES LINK_FLAGS
-            "-undefined dynamic_lookup")
-endif()
 
 target_compile_options(dsyev PRIVATE -fPIC -Wall -O3)
 target_compile_features(dsyev PRIVATE c_std_99)
