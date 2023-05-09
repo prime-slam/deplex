@@ -28,6 +28,8 @@ namespace config {
  */
 struct Config {
  public:
+  Config();
+
   /**
    * Config constructor.
    *

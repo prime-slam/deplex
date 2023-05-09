@@ -20,6 +20,8 @@
 
 namespace deplex {
 namespace config {
+Config::Config() = default;
+
 // TODO:
 Config::Config(std::unordered_map<std::string, std::string> const& param_map) {}
 

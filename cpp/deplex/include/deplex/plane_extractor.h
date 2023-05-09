@@ -34,7 +34,7 @@ class PlaneExtractor {
    * @param image_width Image width in pixels.
    * @param config Parameters of plane extraction algorithm.
    */
-  PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config);
+  PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config = config::Config());
   ~PlaneExtractor();
 
   /**

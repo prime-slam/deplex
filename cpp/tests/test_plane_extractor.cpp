@@ -29,13 +29,12 @@ TEST(TUMPlaneExtraction, DefaultConfigExtraction) {
   auto algorithm = PlaneExtractor(image.getHeight(), image.getWidth());
 
   auto labels = algorithm.process(image.toPointCloud(utils::readIntrinsics(test_globals::tum::intrinsics)));
-  ASSERT_GE(labels.maxCoeff(), 0);
-  ASSERT_LE(labels.maxCoeff(), 30);
+  ASSERT_EQ(labels.maxCoeff(), 34);
 }
 
 TEST(TUMPlaneExtraction, ZeroLeadingConfigExtraction) {
   auto config = config::Config(test_globals::tum::config);
-  config.updateValue("minRegionPlanarityScore", "5000");
+  config.min_region_planarity_score = 5000;
 
   auto image = utils::DepthImage(test_globals::tum::sample_image);
   auto algorithm = PlaneExtractor(image.getHeight(), image.getWidth(), config);
