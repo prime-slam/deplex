@@ -26,15 +26,13 @@ void pybind_plane_extraction(py::module& m) {
 }
 
 void pybind_config(py::module& m) {
-  py::class_<deplex::config::Config>(m, "Config")
-      .def(py::init<std::string>(), py::arg("path"));
+  py::class_<config::Config>(m, "Config").def(py::init<std::string>(), py::arg("path"));
 }
 
 void pybind_extractor(py::module& m) {
-  py::class_<deplex::PlaneExtractor>(m, "PlaneExtractor")
-      .def(py::init<int, int, deplex::config::Config>(),
-           py::arg("image_height"), py::arg("image_width"),
-           py::arg("config") = deplex::PlaneExtractor::kDefaultConfig)
+  py::class_<PlaneExtractor>(m, "PlaneExtractor")
+      .def(py::init<int, int, config::Config>(), py::arg("image_height"), py::arg("image_width"),
+           py::arg("config") = config::Config())
       .def("process", &PlaneExtractor::process, py::arg("pcd_array"));
 }
 }  // namespace deplex
