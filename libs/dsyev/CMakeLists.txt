@@ -4,12 +4,7 @@ set(DSYEV_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dsyevq3.c
 )
 
-# TODO: Fix dynamic linking on macOS
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(dsyev STATIC ${DSYEV_SRC})
-else ()
-    add_library(dsyev SHARED ${DSYEV_SRC})
-endif ()
+add_library(dsyev SHARED ${DSYEV_SRC})
 
 target_include_directories(
     dsyev
