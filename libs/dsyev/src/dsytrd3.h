@@ -22,6 +22,7 @@
 
 // Macros
 #define SQR(x)      ((x)*(x))                        // x^2
+#define ArraySize 3
 
 extern inline void dsytrd3(double A[3][3], double Q[3][3], double d[3], double e[2])
 // ----------------------------------------------------------------------------
@@ -34,14 +35,13 @@ extern inline void dsytrd3(double A[3][3], double Q[3][3], double d[3], double e
 // A. The access is read-only.
 // ---------------------------------------------------------------------------
 {
-  const int n = 3;
-  double u[n], q[n];
+  double u[ArraySize], q[ArraySize];
   double omega, f;
   double K, h, g;
 
   // Initialize Q to the identitity matrix
 #ifndef EVALS_ONLY
-  for (int i=0; i < n; i++)
+  for (int i=0; i < ArraySize; i++)
   {
     Q[i][i] = 1.0;
     for (int j=0; j < i; j++)
@@ -65,7 +65,7 @@ extern inline void dsytrd3(double A[3][3], double Q[3][3], double d[3], double e
   {
     omega = 1.0 / omega;
     K     = 0.0;
-    for (int i=1; i < n; i++)
+    for (int i=1; i < ArraySize; i++)
     {
       f    = A[1][i] * u[1] + A[i][2] * u[2];
       q[i] = omega * f;                  // p
@@ -73,7 +73,7 @@ extern inline void dsytrd3(double A[3][3], double Q[3][3], double d[3], double e
     }
     K *= 0.5 * SQR(omega);
 
-    for (int i=1; i < n; i++)
+    for (int i=1; i < ArraySize; i++)
       q[i] = q[i] - K * u[i];
 
     d[0] = A[0][0];
@@ -82,10 +82,10 @@ extern inline void dsytrd3(double A[3][3], double Q[3][3], double d[3], double e
 
     // Store inverse Householder transformation in Q
 #ifndef EVALS_ONLY
-    for (int j=1; j < n; j++)
+    for (int j=1; j < ArraySize; j++)
     {
       f = omega * u[j];
-      for (int i=1; i < n; i++)
+      for (int i=1; i < ArraySize; i++)
         Q[i][j] = Q[i][j] - f*u[i];
     }
 #endif
@@ -95,7 +95,7 @@ extern inline void dsytrd3(double A[3][3], double Q[3][3], double d[3], double e
   }
   else
   {
-    for (int i=0; i < n; i++)
+    for (int i=0; i < ArraySize; i++)
       d[i] = A[i][i];
     e[1] = A[1][2];
   }
