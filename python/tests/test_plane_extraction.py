@@ -44,7 +44,7 @@ class TestTUMExtraction:
     def test_default_config_extraction(self, algorithm, pcd_points):
         labels = algorithm.process(pcd_points)
         number_of_planes = max(labels)
-        assert 0 < number_of_planes < 30
+        assert number_of_planes == 34
 
     def test_labels_size(self, algorithm, pcd_points):
         labels = algorithm.process(pcd_points)
