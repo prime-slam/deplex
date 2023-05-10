@@ -40,12 +40,12 @@ int32_t DepthImage::getWidth() const { return width_; }
 
 int32_t DepthImage::getHeight() const { return height_; }
 
-Eigen::MatrixXf DepthImage::toPointCloud(Eigen::Matrix3f const& intrinsics) const {
+Eigen::MatrixX3f DepthImage::toPointCloud(Eigen::Matrix3f const& intrinsics) const {
   Eigen::VectorXf column_indices = Eigen::VectorXf::LinSpaced(width_, 0.0, width_ - 1).replicate(height_, 1);
   Eigen::VectorXf row_indices =
       Eigen::VectorXf::LinSpaced(height_, 0.0, height_ - 1).replicate(1, width_).reshaped<Eigen::RowMajor>();
 
-  Eigen::MatrixXf pcd_points(width_ * height_, 3);
+  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> pcd_points(width_ * height_, 3);
 
   float fx = intrinsics.row(0)[0];
   float fy = intrinsics.row(1)[1];

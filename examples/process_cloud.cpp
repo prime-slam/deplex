@@ -29,9 +29,11 @@ int main(int argc, char* argv[]) {
   }
   auto stop = std::chrono::high_resolution_clock::now();
   auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() / NUMBER_OF_RUNS;
+  auto fps = 1e6l / elapsed_time;
 
   std::cout << "Found planes: " << found_planes << '\n';
   std::cout << "Elapsed time (mks): " << elapsed_time << '\n';
+  std::cout << "FPS: " << fps << '\n';
 
   return 0;
 }

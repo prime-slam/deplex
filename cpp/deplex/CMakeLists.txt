@@ -22,6 +22,16 @@ set(SRC_FILES
 find_package(Eigen3 REQUIRED)
 
 #####################################
+# Optional packages
+#####################################
+if (EXPERIMENTAL_OPENMP)
+    find_package(OpenMP)
+    if (NOT OpenMP_CXX_FOUND)
+        message(WARNING "Flag EXPERIMENTAL_OPENMP is ON, but couldn't find OpenMP")
+    endif()
+endif()
+
+#####################################
 # Define Target
 #####################################
 add_library(${TARGET_NAME} ${SRC_FILES})
@@ -43,6 +53,15 @@ if (DEBUG_DEPLEX)
     target_compile_definitions(${TARGET_NAME} PRIVATE DEBUG_DEPLEX)
 endif()
 
+if (BENCHMARK_LOGGING)
+    target_compile_definitions(${TARGET_NAME} PRIVATE BENCHMARK_LOGGING)
+endif()
+
+if (DEBUG_BENCHMARK)
+    message("Disabling optimizations")
+    target_compile_options(${TARGET_NAME} PRIVATE -pg -O0)
+endif()
+
 target_include_directories(
     ${TARGET_NAME}
     SYSTEM
@@ -51,6 +70,10 @@ target_include_directories(
 )
 
 target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
+target_link_libraries(${TARGET_NAME} PRIVATE dsyev)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(${TARGET_NAME} PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 set_target_properties(${TARGET_NAME} PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${DEPLEX_LIB_DIR}")

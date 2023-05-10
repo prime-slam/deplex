@@ -34,7 +34,7 @@ class PlaneExtractor {
    * @param image_width Image width in pixels.
    * @param config Parameters of plane extraction algorithm.
    */
-  PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config = kDefaultConfig);
+  PlaneExtractor(int32_t image_height, int32_t image_width, config::Config config = config::Config());
   ~PlaneExtractor();
 
   /**
@@ -44,12 +44,10 @@ class PlaneExtractor {
    * i.e. points that refer to organized image structure.
    * @returns 1D Array, where i-th value is plane number to which refers i-th point of point cloud.
    */
-  Eigen::VectorXi process(Eigen::MatrixXf const& pcd_array);
+  Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
 
   PlaneExtractor(PlaneExtractor&& op) noexcept;
   PlaneExtractor& operator=(PlaneExtractor&& op) noexcept;
-
-  const static config::Config kDefaultConfig;
 
  private:
   class Impl;

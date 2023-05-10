@@ -20,33 +20,15 @@
 
 namespace deplex {
 namespace config {
-Config::Config(std::map<std::string, std::string> const& param_map) : param_map_(param_map) {}
+Config::Config() = default;
 
-Config::Config(std::string const& config_path) : param_map_(iniLoad(config_path)) {}
+// TODO:
+Config::Config(std::unordered_map<std::string, std::string> const& param_map) {}
 
-bool Config::updateValue(std::string const& name, std::string const& value) {
-  auto value_ptr = param_map_.find(name);
-  if (value_ptr == param_map_.end()) {
-    std::cerr << "Warning: Couldn't update parameter: " + name << ". The name is not in parameters.";
-    return false;
-  }
-  value_ptr->second = value;
-  return true;
-}
-
-std::string Config::findValue(std::string const& name) const {
-  auto value_ptr = param_map_.find(name);
-  if (value_ptr == param_map_.end()) {
-    throw std::runtime_error("Config invalid parameter name provided: " + name);
-  }
-  return value_ptr->second;
-}
-
-std::map<std::string, std::string> Config::iniLoad(std::string const& path) const {
-  std::map<std::string, std::string> parameters;
-  std::ifstream ini_file(path);
+Config::Config(std::string const& config_path) {
+  std::ifstream ini_file(config_path);
   if (!ini_file.is_open()) {
-    throw std::runtime_error("Couldn't open ini file: " + path);
+    throw std::runtime_error("Couldn't open ini file: " + config_path);
   }
   while (ini_file) {
     std::string line;
@@ -59,30 +41,35 @@ std::map<std::string, std::string> Config::iniLoad(std::string const& path) cons
     }
     key = line.substr(0, eq_pos);
     value = line.substr(eq_pos + 1);
-    parameters[key] = value;
+    if (key == "patchSize") {
+      patch_size = std::stoi(value);
+    } else if (key == "histogramBinsPerCoord") {
+      histogram_bins_per_coord = std::stoi(value);
+    } else if (key == "minCosAngleForMerge") {
+      min_cos_angle_merge = std::stof(value);
+    } else if (key == "maxMergeDist") {
+      max_merge_dist = std::stof(value);
+    } else if (key == "minRegionGrowingCandidateSize") {
+      min_region_growing_candidate_size = std::stoi(value);
+    } else if (key == "minRegionGrowingCellsActivated") {
+      min_region_growing_cells_activated = std::stoi(value);
+    } else if (key == "minRegionPlanarityScore") {
+      min_region_planarity_score = std::stof(value);
+    } else if (key == "depthSigmaCoeff") {
+      depth_sigma_coeff = std::stof(value);
+    } else if (key == "depthSigmaMargin") {
+      depth_sigma_margin = std::stof(value);
+    } else if (key == "minPtsPerCell") {
+      min_pts_per_cell = std::stoi(value);
+    } else if (key == "depthDiscontinuityThreshold") {
+      depth_discontinuity_threshold = std::stof(value);
+    } else if (key == "maxNumberDepthDiscontinuity") {
+      max_number_depth_discontinuity = std::stoi(value);
+    } else {
+      std::cerr << "Unknown parameter name: " << key << '\n';
+    }
   }
-
-  return parameters;
 }
 
-int32_t Config::getInt(std::string const& name) const {
-  return std::stoi(findValue(name));
-}
-
-float Config::getFloat(std::string const& name) const {
-  return std::stof(findValue(name));
-}
-
-bool Config::getBool(std::string const& name) const {
-  auto value = findValue(name);
-  if (value == "1" || value == "true" || value == "True")
-    return true;
-  else if (value == "0" || value == "false" || value == "False")
-    return false;
-
-  throw std::runtime_error("Invalid value for boolean parameter: " + name +
-                           ". Allowed values: "
-                           "[1, true, True] or [0, false, False]");
-}
 }  // namespace config
 }  // namespace deplex

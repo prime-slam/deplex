@@ -30,7 +30,7 @@ class DepthImage {
 
   int32_t getHeight() const;
 
-  Eigen::MatrixXf toPointCloud(Eigen::Matrix3f const& intrinsics) const;
+  Eigen::MatrixX3f toPointCloud(Eigen::Matrix3f const& intrinsics) const;
 
  private:
   std::unique_ptr<unsigned short> image_;

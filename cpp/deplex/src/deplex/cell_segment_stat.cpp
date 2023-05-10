@@ -15,18 +15,22 @@
  */
 #include "cell_segment_stat.h"
 
+#include <algorithm>
 #include <limits>
+#include <vector>
 
-#include <Eigen/Eigenvalues>
+extern "C" {
+#include <dsyevh3.h>
+}
 
 namespace deplex {
 CellSegmentStat::CellSegmentStat() : nr_pts_(0), mse_(std::numeric_limits<float>::max()), score_(0) {}
 
-CellSegmentStat::CellSegmentStat(Eigen::MatrixXd const& points)
+CellSegmentStat::CellSegmentStat(Eigen::MatrixX3f const& points)
     : nr_pts_(points.rows()),
       coord_sum_(points.colwise().sum()),
       variance_(points.transpose() * points),
-      mean_(coord_sum_.cast<float>() / nr_pts_) {
+      mean_(coord_sum_ / nr_pts_) {
   fitPlane();
 }
 
@@ -34,7 +38,7 @@ CellSegmentStat& CellSegmentStat::operator+=(CellSegmentStat const& other) {
   nr_pts_ += other.nr_pts_;
   coord_sum_ += other.coord_sum_;
   variance_ += other.variance_;
-  mean_ = coord_sum_.cast<float>() / nr_pts_;
+  mean_ = coord_sum_ / nr_pts_;
   return *this;
 }
 
@@ -49,21 +53,30 @@ float CellSegmentStat::getMSE() const { return mse_; };
 float CellSegmentStat::getD() const { return d_; };
 
 void CellSegmentStat::fitPlane() {
-  Eigen::Matrix3d cov = variance_ - coord_sum_ * coord_sum_.transpose() / nr_pts_;
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(cov);
+  Eigen::Matrix3f cov = variance_ - coord_sum_ * coord_sum_.transpose() / nr_pts_;
+  double tmp_cov[3][3];
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      tmp_cov[i][j] = cov.data()[3 * j + i];
+    }
+  }
+  double eigenvectors[3][3];
+  double eigenvalues[3];
+  dsyevh3(tmp_cov, eigenvectors, eigenvalues);
 
-  Eigen::Index max_es_ind = 0, min_es_ind = 0;
-  es.eigenvalues().maxCoeff(&max_es_ind);
-  es.eigenvalues().minCoeff(&min_es_ind);
+  Eigen::Index min_es_ind = std::distance(eigenvalues, std::min_element(eigenvalues, eigenvalues + 3));
+  Eigen::Index max_es_ind = std::distance(eigenvalues, std::max_element(eigenvalues, eigenvalues + 3));
+  Eigen::Vector3f v(3);
+  for (int i = 0; i < 3; ++i) {
+    v[i] = static_cast<float>(eigenvectors[i][min_es_ind]);
+  }
 
-  Eigen::VectorXf v = es.eigenvectors().col(min_es_ind).cast<float>();
-
-  d_ = static_cast<float>(-mean_.cast<float>().dot(v));
+  d_ = -mean_.dot(v);
   // Enforce normal orientation
   normal_ = (d_ > 0 ? v : -v);
   d_ = (d_ > 0 ? d_ : -d_);
 
-  mse_ = es.eigenvalues()[min_es_ind] / nr_pts_;
-  score_ = es.eigenvalues()[max_es_ind] / (es.eigenvalues().sum());
+  mse_ = static_cast<float>(eigenvalues[min_es_ind] / nr_pts_);
+  score_ = static_cast<float>(eigenvalues[max_es_ind] / (Eigen::Map<Eigen::Vector3d>(eigenvalues, 3).sum()));
 }
 }  // namespace deplex

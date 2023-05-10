@@ -15,8 +15,8 @@
  */
 #pragma once
 
-#include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace deplex {
@@ -26,14 +26,16 @@ namespace config {
  *
  * One should use this class for setting custom algorithm parameters.
  */
-class Config {
+struct Config {
  public:
+  Config();
+
   /**
    * Config constructor.
    *
    * @param param_map Key-value map with config parameters.
    */
-  Config(std::map<std::string, std::string> const& param_map);
+  Config(std::unordered_map<std::string, std::string> const& param_map);
 
   /**
    * Config constructor.
@@ -46,27 +48,18 @@ class Config {
    */
   Config(std::string const& config_path);
 
-  /**
-   * Update config parameter with new value.
-   *
-   * @param name Parameter name.
-   * @param value Parameter value.
-   * @returns false if given name is not in parameters, true otherwise
-   */
-  bool updateValue(std::string const& name, std::string const& value);
-
-  int32_t getInt(std::string const& name) const;
-
-  float getFloat(std::string const& name) const;
-
-  bool getBool(std::string const& name) const;
-
- private:
-  std::map<std::string, std::string> param_map_;
-
-  std::string findValue(std::string const& name) const;
-
-  std::map<std::string, std::string> iniLoad(std::string const& path) const;
+  int32_t patch_size = 10;
+  int32_t histogram_bins_per_coord = 20;
+  float min_cos_angle_merge = 0.90;
+  float max_merge_dist = 500;
+  int32_t min_region_growing_candidate_size = 5;
+  int32_t min_region_growing_cells_activated = 4;
+  float min_region_planarity_score = 0.55;
+  float depth_sigma_coeff = 1.425e-6;
+  float depth_sigma_margin = 10.;
+  int32_t min_pts_per_cell = 3;
+  float depth_discontinuity_threshold = 160;
+  int32_t max_number_depth_discontinuity = 1;
 };
 }  // namespace config
 }  // namespace deplex

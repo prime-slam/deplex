@@ -22,10 +22,14 @@
 namespace deplex {
 class CellGrid {
  public:
-  CellGrid(Eigen::MatrixXf const& points, config::Config const& config, int32_t number_horizontal_cells,
-           int32_t number_vertical_cells);
+  CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& points, config::Config const& config,
+           int32_t number_horizontal_cells, int32_t number_vertical_cells);
 
-  CellSegment const& getByCoordinates(size_t x, size_t y) const;
+  size_t findLabel(size_t v);
+
+  void uniteLabels(size_t a, size_t b);
+
+  void updateCell(size_t cell_id, CellSegment new_cell);
 
   CellSegment const& operator[](size_t cell_id) const;
 
@@ -40,7 +44,9 @@ class CellGrid {
   int32_t cell_height_;
   int32_t number_horizontal_cells_;
   int32_t number_vertical_cells_;
-  std::vector<std::vector<CellSegment>> cell_grid_;
+  std::vector<size_t> parent_;
+  std::vector<int> component_size_;
+  std::vector<CellSegment> cell_grid_;
   std::vector<bool> planar_mask_;
 };
 }  // namespace deplex
