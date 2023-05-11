@@ -39,4 +39,4 @@ Eigen::Matrix3f readIntrinsics(std::string const& intrinsics_path);
  */
 void savePointCloudCSV(Eigen::MatrixXf const& pcd_points, std::string const& path);
 }  // namespace utils
-}  // namespace deplex::utils
+}  // namespace deplex

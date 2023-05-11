@@ -25,5 +25,5 @@ constexpr const char* config = "${TUM_CONFIG}";
 constexpr const char* sample_image = "${TUM_SAMPLE_IMAGE}";
 constexpr const char* sample_image_points = "${TUM_SAMPLE_IMAGE_POINTS}";
 }  // namespace tum
-}  // namespace test_globals
+}  // namespace bench_globals
 }  // namespace deplex

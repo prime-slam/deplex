@@ -19,7 +19,6 @@
 
 #include <Eigen/Core>
 
-
 namespace deplex {
 class NormalsHistogram {
  public:
