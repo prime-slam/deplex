@@ -29,6 +29,12 @@ const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCol
  */
 Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter = ',');
 
+/**
+ * Read camera intrinsics from file.
+ *
+ * @param intrinsics_path Path to input file with camera intrinsics (3 x 3 matrix with no delimiters)
+ * @returns Matrix[3x3] camera intrinsics matrix [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+ */
 Eigen::Matrix3f readIntrinsics(std::string const& intrinsics_path);
 
 /**

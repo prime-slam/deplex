@@ -47,18 +47,29 @@ struct Config {
    * @param config_path Path to .ini file with parameters.
    */
   Config(std::string const& config_path);
-
+  // Minimal size of a region, unit: pixels
   int32_t patch_size = 10;
+  // Seed selection, bigger value detects dominant normal direction more precisely
   int32_t histogram_bins_per_coord = 20;
+  // Normal deviation angle threshold, unit: degree
   float min_cos_angle_merge = 0.90;
+  // Distance between two regions threshold, unit: mm
   float max_merge_dist = 500;
+  // Minimum number of cells to consider a dominant direction valid
   int32_t min_region_growing_candidate_size = 5;
+  // Minimum number of cells considered to be a planar region
   int32_t min_region_growing_cells_activated = 4;
+  // Score to consider a region as a plane
   float min_region_planarity_score = 0.55;
+  // Depth-dependent threshold coefficient for depth-discontinuity evaluation
   float depth_sigma_coeff = 1.425e-6;
+  // Depth-dependent threshold margin for depth-discontinuity evaluation
   float depth_sigma_margin = 10.;
+  // Ratio of valid (not NaN) points in cell
   int32_t min_pts_per_cell = 3;
+  // Difference between two adjacent pixels to consider a  depth-discontinuity
   float depth_discontinuity_threshold = 160;
+  // Maximum depth-discontinuity occurrences inside one cell
   int32_t max_number_depth_discontinuity = 1;
 };
 }  // namespace config

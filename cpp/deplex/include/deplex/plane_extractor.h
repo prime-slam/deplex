@@ -43,6 +43,7 @@ class PlaneExtractor {
    * @param pcd_array Points matrix [Nx3] of ORGANIZED point cloud
    * i.e. points that refer to organized image structure.
    * @returns 1D Array, where i-th value is plane number to which refers i-th point of point cloud.
+   * 0-value label refers to non-planar segment.
    */
   Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
 
