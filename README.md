@@ -9,10 +9,14 @@ Technically you don't need any! Library depends only on Eigen3 for math operatio
 We also provide Python bindings for building cross-platfrom Python wheels. As well as main library, package depends only on numpy.
 ## Usage
 ```python
-from deplex import PlaneExtractor
+from deplex import PlaneExtractor, Config
+from deplex.utils import DepthImage
 
-runner = PlaneExtractor(image_height, image_width)  
-labels = runner.process(image_points)
+camera_intrinsics = [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+image = DepthImage("sample_depth.png")
+config = Config("custom_config.ini")
+runner = PlaneExtractor(image.height, image.width, config=config)  
+labels = runner.process(image.transform_to_pcd(camera_intrinsics))
 ```
 ## Installation
 ### Building from source
@@ -29,7 +33,7 @@ Simply install it with pip.
 python3 -m pip install deplex
 ```
 Supported Python versions: 3.6-3.10
-Supported platfrom: Linux (Mac and Windows coming soon...)
+Supported platfrom: Linux, macOS and Windows
 
 ## License
 Apache License, Version 2.0
