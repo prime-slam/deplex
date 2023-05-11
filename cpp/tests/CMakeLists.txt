@@ -12,6 +12,7 @@ set(TUM_INTRINSICS "${DATA_DIR}/configs/TUM_fr3_long_val.K")
 set(TUM_CONFIG "${DATA_DIR}/configs/TUM_fr3_long_val.ini")
 set(TUM_SAMPLE_IMAGE "${DATA_DIR}/tum/1341848230.910894.png")
 set(TUM_SAMPLE_IMAGE_POINTS "${DATA_DIR}/tum/points_1341848230.910894.csv")
+set(MISSING_PARAMS_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/data/invalid/MissingParameters.ini")
 
 #####################################
 # Configure globals.hpp
@@ -24,6 +25,7 @@ configure_file(globals.hpp.in globals.hpp)
 add_executable(unit-tests
         main.cpp
         test_plane_extractor.cpp
+        test_config.cpp
         )
 
 target_include_directories(unit-tests SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
