@@ -26,10 +26,10 @@ extern "C" {
 namespace deplex {
 CellSegmentStat::CellSegmentStat() : nr_pts_(0), mse_(std::numeric_limits<float>::max()), score_(0) {}
 
-CellSegmentStat::CellSegmentStat(Eigen::MatrixX3f const& points)
-    : nr_pts_(points.rows()),
-      coord_sum_(points.colwise().sum()),
-      variance_(points.transpose() * points),
+CellSegmentStat::CellSegmentStat(Eigen::MatrixX3f const& cell_points)
+    : nr_pts_(cell_points.rows()),
+      coord_sum_(cell_points.colwise().sum()),
+      variance_(cell_points.transpose() * cell_points),
       mean_(coord_sum_ / nr_pts_) {
   fitPlane();
 }

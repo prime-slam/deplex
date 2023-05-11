@@ -20,12 +20,33 @@
 #include <Eigen/Core>
 
 namespace deplex {
+/**
+ * Normals Histogram class.
+ * Get dominant normal direction in spherical coordinates.
+ */
 class NormalsHistogram {
  public:
+  /**
+   * NormalsHistogram constructor.
+   * Build histogram in spherical coordinates from cell's normals.
+   *
+   * @param nr_bins_per_coord Config parameter, granularity of spherical space.
+   * @param normals Cell's normals.
+   */
   NormalsHistogram(int32_t nr_bins_per_coord, Eigen::MatrixX3f const& normals);
 
+  /**
+   * Get the id's of cells whose normals lie in the dominant direction.
+   *
+   * @returns Vector of dominant cells indices.
+   */
   std::vector<int32_t> getPointsFromMostFrequentBin() const;
 
+  /**
+   * Remove point from histogram.
+   *
+   * @note Thus, we need to recalculate most frequent bin in corresponding method.
+   */
   void removePoint(int32_t point_id);
 
  private:
