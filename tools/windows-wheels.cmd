@@ -1,4 +1,4 @@
-@REM Copyright 2022 prime-slam
+@REM Copyright (c) 2022, Arthur Saliou, Anastasiia Kornilova
 @REM Licensed under the Apache License, Version 2.0 (the "License");
 @REM you may not use this file except in compliance with the License.
 @REM You may obtain a copy of the License at
