@@ -8,8 +8,8 @@ set(TUM_SAMPLE_IMAGE_POINTS "${DATA_DIR}/tum/points_1341848230.910894.csv")
 configure_file(globals.hpp.in globals.hpp)
 
 add_executable(deplex-benchmark
-    benchmark_extractor.cpp
-)
+        benchmark_extractor.cpp
+        )
 
 target_include_directories(deplex-benchmark SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 

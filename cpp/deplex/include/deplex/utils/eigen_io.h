@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 prime-slam
+ * Copyright (c) 2022, Arthur Saliou, Anastasiia Kornilova
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,12 @@ const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCol
  */
 Eigen::MatrixXf readPointCloudCSV(std::string const& path, char delimiter = ',');
 
+/**
+ * Read camera intrinsics from file.
+ *
+ * @param intrinsics_path Path to input file with camera intrinsics (3 x 3 matrix with no delimiters)
+ * @returns Matrix[3x3] camera intrinsics matrix [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+ */
 Eigen::Matrix3f readIntrinsics(std::string const& intrinsics_path);
 
 /**
@@ -39,4 +45,4 @@ Eigen::Matrix3f readIntrinsics(std::string const& intrinsics_path);
  */
 void savePointCloudCSV(Eigen::MatrixXf const& pcd_points, std::string const& path);
 }  // namespace utils
-}  // namespace deplex::utils
+}  // namespace deplex

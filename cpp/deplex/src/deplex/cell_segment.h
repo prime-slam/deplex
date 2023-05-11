@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 prime-slam
+ * Copyright (c) 2022, Arthur Saliou, Anastasiia Kornilova
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,16 +21,36 @@
 #include "deplex/config.h"
 
 namespace deplex {
+/**
+ * Cell Segment representation.
+ * Planarity validation, store cell data.
+ */
 class CellSegment {
  public:
   CellSegment();
-
+  /**
+   * CellSegment constructor.
+   *
+   * @param cell_points Cell points block.
+   * @param config Plane extractor config.
+   */
   CellSegment(Eigen::MatrixX3f const& cell_points, config::Config const& config);
 
+  /**
+   * Merge two cells together
+   *
+   * @param other another CellSegment.
+   * @returns new CellSegment with merged stats.
+   */
   CellSegment& operator+=(CellSegment const& other);
 
   CellSegmentStat const& getStat() const;
 
+  /**
+   * Plane fitting via PCA.
+   *
+   * @note Updates cell's normal, score etc.
+   */
   void calculateStats();
 
   bool isPlanar() const;

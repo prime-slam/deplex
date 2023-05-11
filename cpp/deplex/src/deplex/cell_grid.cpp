@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 prime-slam
+ * Copyright (c) 2022, Arthur Saliou, Anastasiia Kornilova
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
       component_size_(number_vertical_cells * number_horizontal_cells, 1),
       planar_mask_(number_vertical_cells * number_horizontal_cells) {
   cell_grid_.reserve(planar_mask_.size());
-  Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>
-      cell_points(points.data(), cell_width_ * cell_height_, 3);
+  Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>> cell_points(points.data(),
+                                                                                         cell_width_ * cell_height_, 3);
 #pragma omp parallel for default(none) shared(points, config, cell_points)
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;

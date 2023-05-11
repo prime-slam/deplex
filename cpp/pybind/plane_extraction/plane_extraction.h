@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 prime-slam
+ * Copyright (c) 2022, Arthur Saliou, Anastasiia Kornilova
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 #pragma once
-#include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 

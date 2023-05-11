@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 prime-slam
+ * Copyright (c) 2022, Arthur Saliou, Anastasiia Kornilova
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,11 +39,28 @@ inline size_t get_benchmark_time(Time start_time) {
 #endif
 
 namespace deplex {
-
+/**
+ * Class with encapsulated PlaneExtractor logic (see PIMPL idiom)
+ */
 class PlaneExtractor::Impl {
  public:
+  /**
+   * Impl (PlaneExtractor) constructor.
+   *
+   * @param image_height Image height in pixels.
+   * @param image_width Image width in pixels.
+   * @param config Parameters of plane extraction algorithm.
+   */
   Impl(int32_t image_height, int32_t image_width, config::Config config);
 
+  /**
+   * Extract planes from given image.
+   *
+   * @param pcd_array Points matrix [Nx3] of ORGANIZED point cloud
+   * i.e. points that refer to organized image structure.
+   * @returns 1D Array, where i-th value is plane number to which refers i-th point of point cloud.
+   * 0-value label refers to non-planar segment.
+   */
   Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
 
  private:
@@ -54,22 +71,73 @@ class PlaneExtractor::Impl {
   int32_t image_width_;
   Eigen::MatrixXi labels_map_;
 
+  /**
+   * Organize point cloud, so that points corresponding to one cell lie sequentially in memory.
+   *
+   * @param unorganized_data Points matrix [Nx3] with default Eigen alignment (RowMajor).
+   * @returns Cell-wise organized points (RowMajor).
+   */
   void cellContinuousOrganize(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
                               Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd);
 
+  /**
+   * Initialize histogram from planar cells of cell grid.
+   *
+   * @param cell_grid Cell Grid.
+   * @returns Histogram of cells' normals.
+   */
   NormalsHistogram initializeHistogram(CellGrid const& cell_grid);
 
+  /**
+   * Region Growing:
+   * 1. Pick dominant cell;
+   * 2. Perform growSeed operation;
+   * 3. Push to cell segment.
+   *
+   * @param cell_grid Cell Grid.
+   * @param hist Histogram of cells' normals.
+   * @returns Vector of grown cell segments.
+   */
   std::vector<CellSegment> createPlaneSegments(CellGrid const& cell_grid, NormalsHistogram hist);
 
+  /**
+   * Find labels of cells, which can be merged.
+   *
+   * @param plane_segments Vector of grown cell segments.
+   * @returns Vector of merge labels. If merge[i] != i, than cell[i] can be merged with cell[merge[i]].
+   */
   std::vector<int32_t> findMergedLabels(std::vector<CellSegment>* plane_segments);
 
+  /**
+   * Transform merge label information into 1D label array of image size.
+   *
+   * @param merge_labels Vector of merge labels.
+   * @returns Flatten array of labels of size [image_width x image_height]
+   */
   Eigen::VectorXi toImageLabels(std::vector<int32_t> const& merge_labels);
 
+  /**
+   * Clean all used data for sufficient sequential image computing.
+   */
   void cleanArtifacts();
 
+  /**
+   * Seed growing via BFS.
+   *
+   * @param seed_id Start seed to grow from.
+   * @param unassigned Vector of cell id's that don't belong to any cell yet.
+   * @param activation_map Vector of activated cells after growSeed call.
+   * @param cell_grid Cell Grid.
+   */
   void growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned, std::vector<bool>* activation_map,
                 CellGrid const& cell_grid) const;
 
+  /**
+   * Get vector of potentially mergeable cell components.
+   *
+   * @param nr_planes Number of planar components.
+   * @returns Connectivity with neighbours map.
+   */
   std::vector<std::vector<bool>> getConnectedComponents(size_t nr_planes) const;
 
 #ifdef DEBUG_DEPLEX

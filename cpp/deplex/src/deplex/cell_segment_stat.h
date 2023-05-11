@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 prime-slam
+ * Copyright (c) 2022, Arthur Saliou, Anastasiia Kornilova
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,28 @@
 #include <Eigen/Core>
 
 namespace deplex {
+/**
+ * Cell Segment Statistics.
+ * MSE, Planarity score, PCA etc.
+ */
 class CellSegmentStat {
  public:
   CellSegmentStat();
 
-  explicit CellSegmentStat(Eigen::MatrixX3f const& points);
+  /**
+   * CellSegmentStat constructor.
+   * Compute cell's variance, eigenvalues (PCA), cell's normal etc
+   *
+   * @param cell_points Cell points block.
+   */
+  explicit CellSegmentStat(Eigen::MatrixX3f const& cell_points);
 
+  /**
+   * Merge two cell stats together
+   *
+   * @param other another CellSegmentStat.
+   * @returns new CellSegmentStat with merged stats.
+   */
   CellSegmentStat& operator+=(CellSegmentStat const& other);
 
   Eigen::Vector3f const& getNormal() const;
@@ -36,6 +52,10 @@ class CellSegmentStat {
 
   float getD() const;
 
+  /**
+   * Principal Component Analysis.
+   * Compute cell's variance, eigenvalues (PCA), cell's normal etc
+   */
   void fitPlane();
 
  private:
