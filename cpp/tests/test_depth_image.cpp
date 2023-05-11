@@ -21,30 +21,30 @@
 
 namespace deplex {
 namespace {
-TEST(ReadImage, ValidImage){
+TEST(ReadImage, ValidImage) {
   auto image = utils::DepthImage(test_globals::tum::sample_image);
   ASSERT_EQ(image.getWidth(), 640);
   ASSERT_EQ(image.getHeight(), 480);
 }
 
-TEST(ReadImage, InvalidPath){
-  ASSERT_THROW(utils::DepthImage("__INVALID_PATH"), std::runtime_error);
+TEST(ReadImage, InvalidPath) { ASSERT_THROW(utils::DepthImage("__INVALID_PATH"), std::runtime_error); }
+
+TEST(ReadImage, InvalidImageExtension) {
+  auto invalid_path = test_globals::invalid::invalid_extension_image;
+  ASSERT_THROW([invalid_path]() { return utils::DepthImage(invalid_path); }(), std::runtime_error);
 }
 
-TEST(ReadImage, InvalidImageExtension){
-  ASSERT_THROW(utils::DepthImage(test_globals::invalid::invalid_extension_image), std::runtime_error);
+TEST(ReadImage, InvalidImage) {
+  auto invalid_path = test_globals::invalid::invalid_depth_image;
+  ASSERT_THROW([invalid_path]() { return utils::DepthImage(invalid_path); }(), std::runtime_error);
 }
 
-TEST(ReadImage, InvalidImage){
-  ASSERT_THROW(utils::DepthImage(test_globals::invalid::invalid_depth_image), std::runtime_error);
-}
-
-TEST(TransformPointCloud, ValidTransform){
+TEST(TransformPointCloud, ValidTransform) {
   auto intrinsics = utils::readIntrinsics(test_globals::tum::intrinsics);
   auto image = utils::DepthImage(test_globals::tum::sample_image);
   auto points = image.toPointCloud(intrinsics);
   ASSERT_EQ(points.col(2).maxCoeff(), 46655);
   ASSERT_EQ(points.col(2).minCoeff(), 0);
 }
-}
+}  // namespace
 }  // namespace deplex
