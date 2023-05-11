@@ -44,5 +44,48 @@ TEST(TUMPlaneExtraction, ZeroLeadingConfigExtraction) {
   ASSERT_EQ(points.rows(), labels.size());
 }
 
+TEST(TUMPlaneExtraction, ZeroPatchSize) {
+  auto config = config::Config(test_globals::tum::config);
+  config.patch_size = 0;
+
+  auto image = utils::DepthImage(test_globals::tum::sample_image);
+  ASSERT_THROW(PlaneExtractor(image.getHeight(), image.getWidth(), config), std::runtime_error);
+}
+
+TEST(TUMPlaneExtraction, EnormousPatchSize) {
+  auto config = config::Config(test_globals::tum::config);
+  config.patch_size = 1e6;
+
+  auto image = utils::DepthImage(test_globals::tum::sample_image);
+  auto algorithm = PlaneExtractor(image.getHeight(), image.getWidth(), config);
+  auto points = image.toPointCloud(utils::readIntrinsics(test_globals::tum::intrinsics));
+  auto labels = algorithm.process(points);
+  ASSERT_TRUE(labels.isZero());
+  ASSERT_EQ(points.rows(), labels.size());
+}
+
+TEST(InvalidInput, ZeroValuePoints) {
+  auto width = 640, height = 480;
+  auto algorithm = PlaneExtractor(height, width);
+  auto points = Eigen::MatrixX3f::Zero(width * height, 3);
+  auto labels = algorithm.process(points);
+  ASSERT_TRUE(labels.isZero());
+  ASSERT_EQ(points.rows(), labels.size());
+}
+
+TEST(InvalidInput, EmptyPoints) {
+  auto width = 640, height = 480;
+  auto algorithm = PlaneExtractor(height, width);
+  auto points = Eigen::MatrixX3f();
+  ASSERT_THROW(algorithm.process(points), std::runtime_error);
+}
+
+TEST(InvalidInput, WrongShape) {
+  auto width = 640, height = 480;
+  auto algorithm = PlaneExtractor(height / 2, width / 2);
+  auto points = Eigen::MatrixX3f::Zero(width * height, 3);
+  ASSERT_THROW(algorithm.process(points), std::runtime_error);
+}
+
 }  // namespace
 }  // namespace deplex

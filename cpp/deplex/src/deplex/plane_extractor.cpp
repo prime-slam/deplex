@@ -147,11 +147,16 @@ class PlaneExtractor::Impl {
 
 PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Config config)
     : config_(config),
-      nr_horizontal_cells_(image_width / config.patch_size),
-      nr_vertical_cells_(image_height / config.patch_size),
+      nr_horizontal_cells_(image_width / std::max(config.patch_size, 1)),
+      nr_vertical_cells_(image_height / std::max(config.patch_size, 1)),
       image_height_(image_height),
       image_width_(image_width),
-      labels_map_(Eigen::MatrixXi::Zero(nr_vertical_cells_, nr_horizontal_cells_)) {}
+      labels_map_(Eigen::MatrixXi::Zero(nr_vertical_cells_, nr_horizontal_cells_)) {
+  if (config.patch_size == 0) {
+    throw std::runtime_error("Error! Invalid config parameter: patchSize(" + std::to_string(config.patch_size) +
+                             "). patchSize has to be positive.");
+  }
+}
 
 PlaneExtractor::~PlaneExtractor() = default;
 PlaneExtractor::PlaneExtractor(PlaneExtractor&&) noexcept = default;
@@ -163,6 +168,13 @@ PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width, config
 Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixX3f const& pcd_array) { return impl_->process(pcd_array); }
 
 Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array) {
+  if (pcd_array.rows() != image_width_ * image_height_) {
+    std::string msg_points_size = std::to_string(pcd_array.rows());
+    std::string msg_width = std::to_string(image_width_);
+    std::string msg_height = std::to_string(image_height_);
+    throw std::runtime_error("Error! Number of points doesn't match image shape: " + msg_points_size +
+                             " != " + msg_height + " x " + msg_width);
+  }
   // 0. Organize PCD to cell-continuous data
 #ifdef BENCHMARK_LOGGING
   auto time_cell_continuous_organize = std::chrono::high_resolution_clock::now();
