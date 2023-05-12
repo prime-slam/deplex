@@ -117,11 +117,11 @@ class PlaneExtractor::Impl {
    *
    * @param seed_id Start seed to grow from.
    * @param unassigned Vector of cell id's that don't belong to any cell yet.
-   * @param activation_map Vector of activated cells after growSeed call.
    * @param cell_grid Cell Grid.
+   * @returns Vector of activated cells after growSeed call.
    */
-  void growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned, std::vector<bool>* activation_map,
-                CellGrid const& cell_grid) const;
+  std::vector<bool> growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
+                             CellGrid const& cell_grid) const;
 
   /**
    * Get vector of potentially mergeable cell components.
@@ -273,8 +273,7 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
     }
     // 3. Grow seed
     CellSegment plane_candidate(cell_grid[seed_id]);
-    std::vector<bool> activation_map(unassigned_mask.size());
-    growSeed(seed_id, unassigned_mask, &activation_map, cell_grid);
+    std::vector<bool> activation_map = growSeed(seed_id, unassigned_mask, cell_grid);
 
     // 4. Merge activated cells & remove from hist
     for (size_t i = 0; i < activation_map.size(); ++i) {
@@ -314,15 +313,17 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
   return plane_segments;
 }
 
-void PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
-                                    std::vector<bool>* activation_map, CellGrid const& cell_grid) const {
-  if (!unassigned[seed_id] || activation_map->at(seed_id)) {
-    return;
+std::vector<bool> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
+                                                 CellGrid const& cell_grid) const {
+  std::vector<bool> activation_map(unassigned.size(), false);
+
+  if (!unassigned[seed_id]) {
+    return activation_map;
   }
 
   std::queue<Eigen::Index> seed_queue;
   seed_queue.push(seed_id);
-  activation_map->at(seed_id) = true;
+  activation_map[seed_id] = true;
 
   while (!seed_queue.empty()) {
     Eigen::Index current_seed = seed_queue.front();
@@ -332,7 +333,7 @@ void PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> cons
     Eigen::Vector3f normal_current = cell_grid[current_seed].getStat().getNormal();
 
     for (auto neighbour : cell_grid.getNeighbours(current_seed)) {
-      if (!unassigned[neighbour] || activation_map->at(neighbour)) {
+      if (!unassigned[neighbour] || activation_map[neighbour]) {
         continue;
       }
       Eigen::Vector3f normal_neighbour = cell_grid[neighbour].getStat().getNormal();
@@ -341,11 +342,12 @@ void PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> cons
       double cos_angle = normal_current.dot(normal_neighbour);
       double merge_dist = pow(normal_current.dot(mean_neighbour) + d_current, 2);
       if (cos_angle >= config_.min_cos_angle_merge && merge_dist <= cell_grid[neighbour].getMergeTolerance()) {
-        activation_map->at(neighbour) = true;
+        activation_map[neighbour] = true;
         seed_queue.push(static_cast<Eigen::Index>(neighbour));
       }
     }
   }
+  return activation_map;
 }
 
 std::vector<int32_t> PlaneExtractor::Impl::findMergedLabels(std::vector<CellSegment>* plane_segments) {
