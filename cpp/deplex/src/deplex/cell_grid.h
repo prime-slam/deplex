@@ -95,5 +95,14 @@ class CellGrid {
   std::vector<int> component_size_;
   std::vector<CellSegment> cell_grid_;
   std::vector<bool> planar_mask_;
+
+  /**
+   * Organize point cloud, so that points corresponding to one cell lie sequentially in memory.
+   *
+   * @param unorganized_data Points matrix [Nx3] with default Eigen alignment (RowMajor).
+   * @returns Cell-wise organized points (RowMajor).
+   */
+  void cellContinuousOrganize(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
+                              Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd);
 };
 }  // namespace deplex

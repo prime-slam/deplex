@@ -72,15 +72,6 @@ class PlaneExtractor::Impl {
   Eigen::MatrixXi labels_map_;
 
   /**
-   * Organize point cloud, so that points corresponding to one cell lie sequentially in memory.
-   *
-   * @param unorganized_data Points matrix [Nx3] with default Eigen alignment (RowMajor).
-   * @returns Cell-wise organized points (RowMajor).
-   */
-  void cellContinuousOrganize(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
-                              Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd);
-
-  /**
    * Initialize histogram from planar cells of cell grid.
    *
    * @param cell_grid Cell Grid.
@@ -126,11 +117,11 @@ class PlaneExtractor::Impl {
    *
    * @param seed_id Start seed to grow from.
    * @param unassigned Vector of cell id's that don't belong to any cell yet.
-   * @param activation_map Vector of activated cells after growSeed call.
    * @param cell_grid Cell Grid.
+   * @returns Vector of activated cells after growSeed call.
    */
-  void growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned, std::vector<bool>* activation_map,
-                CellGrid const& cell_grid) const;
+  std::vector<bool> growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
+                             CellGrid const& cell_grid) const;
 
   /**
    * Get vector of potentially mergeable cell components.
@@ -175,22 +166,11 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
     throw std::runtime_error("Error! Number of points doesn't match image shape: " + msg_points_size +
                              " != " + msg_height + " x " + msg_width);
   }
-  // 0. Organize PCD to cell-continuous data
-#ifdef BENCHMARK_LOGGING
-  auto time_cell_continuous_organize = std::chrono::high_resolution_clock::now();
-#endif
-  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cell_continuous_points(pcd_array.rows(), pcd_array.cols());
-  cellContinuousOrganize(pcd_array, &cell_continuous_points);
-
-#ifdef BENCHMARK_LOGGING
-  std::clog << "[BenchmarkLogging] Cell Continuous Organize: "
-            << get_benchmark_time<decltype(std::chrono::microseconds())>(time_cell_continuous_organize) << '\n';
-#endif
   // 1. Initialize cell grid (Planarity estimation)
 #ifdef BENCHMARK_LOGGING
   auto time_init_cell_grid = std::chrono::high_resolution_clock::now();
 #endif
-  CellGrid cell_grid(cell_continuous_points, config_, nr_horizontal_cells_, nr_vertical_cells_);
+  CellGrid cell_grid(pcd_array, config_, nr_horizontal_cells_, nr_vertical_cells_);
 #ifdef BENCHMARK_LOGGING
   std::clog << "[BenchmarkLogging] Cell Grid Initialization: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_init_cell_grid) << '\n';
@@ -259,25 +239,6 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
   return labels;
 }
 
-void PlaneExtractor::Impl::cellContinuousOrganize(
-    Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
-    Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd) {
-  int32_t cell_width = config_.patch_size;
-  int32_t cell_height = config_.patch_size;
-
-#pragma omp parallel for default(none) shared(cell_width, cell_height, organized_pcd, unorganized_data)
-  for (Eigen::Index cell_id = 0; cell_id < nr_vertical_cells_ * nr_horizontal_cells_; ++cell_id) {
-    Eigen::Index outer_cell_stride = cell_width * cell_height * cell_id;
-    for (Eigen::Index i = 0; i < cell_height; ++i) {
-      Eigen::Index cell_row_stride = i * cell_width;
-      organized_pcd->block(cell_row_stride + outer_cell_stride, 0, cell_width, 3) =
-          unorganized_data.block(i * image_width_ + (cell_id / nr_horizontal_cells_ * image_width_ * cell_height) +
-                                     (cell_id * cell_width) % image_width_,
-                                 0, cell_height, 3);
-    }
-  }
-}
-
 NormalsHistogram PlaneExtractor::Impl::initializeHistogram(CellGrid const& cell_grid) {
   Eigen::MatrixX3f normals = Eigen::MatrixX3f::Zero(cell_grid.size(), 3);
   for (Eigen::Index i = 0; i < cell_grid.size(); ++i) {
@@ -312,8 +273,7 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
     }
     // 3. Grow seed
     CellSegment plane_candidate(cell_grid[seed_id]);
-    std::vector<bool> activation_map(unassigned_mask.size());
-    growSeed(seed_id, unassigned_mask, &activation_map, cell_grid);
+    std::vector<bool> activation_map = growSeed(seed_id, unassigned_mask, cell_grid);
 
     // 4. Merge activated cells & remove from hist
     for (size_t i = 0; i < activation_map.size(); ++i) {
@@ -353,15 +313,17 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
   return plane_segments;
 }
 
-void PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
-                                    std::vector<bool>* activation_map, CellGrid const& cell_grid) const {
-  if (!unassigned[seed_id] || activation_map->at(seed_id)) {
-    return;
+std::vector<bool> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
+                                                 CellGrid const& cell_grid) const {
+  std::vector<bool> activation_map(unassigned.size(), false);
+
+  if (!unassigned[seed_id]) {
+    return activation_map;
   }
 
   std::queue<Eigen::Index> seed_queue;
   seed_queue.push(seed_id);
-  activation_map->at(seed_id) = true;
+  activation_map[seed_id] = true;
 
   while (!seed_queue.empty()) {
     Eigen::Index current_seed = seed_queue.front();
@@ -371,7 +333,7 @@ void PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> cons
     Eigen::Vector3f normal_current = cell_grid[current_seed].getStat().getNormal();
 
     for (auto neighbour : cell_grid.getNeighbours(current_seed)) {
-      if (!unassigned[neighbour] || activation_map->at(neighbour)) {
+      if (!unassigned[neighbour] || activation_map[neighbour]) {
         continue;
       }
       Eigen::Vector3f normal_neighbour = cell_grid[neighbour].getStat().getNormal();
@@ -380,11 +342,12 @@ void PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> cons
       double cos_angle = normal_current.dot(normal_neighbour);
       double merge_dist = pow(normal_current.dot(mean_neighbour) + d_current, 2);
       if (cos_angle >= config_.min_cos_angle_merge && merge_dist <= cell_grid[neighbour].getMergeTolerance()) {
-        activation_map->at(neighbour) = true;
+        activation_map[neighbour] = true;
         seed_queue.push(static_cast<Eigen::Index>(neighbour));
       }
     }
   }
+  return activation_map;
 }
 
 std::vector<int32_t> PlaneExtractor::Impl::findMergedLabels(std::vector<CellSegment>* plane_segments) {
