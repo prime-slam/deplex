@@ -37,6 +37,6 @@ namespace invalid {
 constexpr const char* missing_params_config = "${MISSING_PARAMS_CONFIG}";
 constexpr const char* invalid_extension_image = "${INVALID_EXTENSION_IMAGE}";
 constexpr const char* invalid_depth_image = "${INVALID_DEPTH_IMAGE}";
-}
+}  // namespace invalid
 }  // namespace test_globals
 }  // namespace deplex
