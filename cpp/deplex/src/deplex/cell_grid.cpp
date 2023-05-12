@@ -28,12 +28,15 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
       component_size_(number_vertical_cells * number_horizontal_cells, 1),
       planar_mask_(number_vertical_cells * number_horizontal_cells) {
   cell_grid_.reserve(planar_mask_.size());
-  Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>> cell_points(points.data(),
+  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cell_continuous_points(points.rows(), points.cols());
+  cellContinuousOrganize(points, &cell_continuous_points);
+
+  Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>> cell_points(cell_continuous_points.data(),
                                                                                          cell_width_ * cell_height_, 3);
-#pragma omp parallel for default(none) shared(points, config, cell_points)
+#pragma omp parallel for default(none) shared(cell_continuous_points, config, cell_points)
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;
-    new (&cell_points) decltype(cell_points)(points.data() + offset, cell_width_ * cell_height_, 3);
+    new (&cell_points) decltype(cell_points)(cell_continuous_points.data() + offset, cell_width_ * cell_height_, 3);
     cell_grid_[cell_id] = CellSegment(cell_points, config);
     parent_[cell_id] = cell_id;
     planar_mask_[cell_id] = cell_grid_[cell_id].isPlanar();
@@ -74,5 +77,21 @@ std::vector<size_t> CellGrid::getNeighbours(size_t cell_id) const {
 }
 
 size_t CellGrid::size() const { return planar_mask_.size(); }
+
+void CellGrid::cellContinuousOrganize(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
+                                      Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd) {
+  int32_t image_width = number_horizontal_cells_ * cell_width_;
+#pragma omp parallel for default(none) shared(cell_width, cell_height, organized_pcd, unorganized_data)
+  for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
+    Eigen::Index outer_cell_stride = cell_width_ * cell_height_ * cell_id;
+    for (Eigen::Index i = 0; i < cell_height_; ++i) {
+      Eigen::Index cell_row_stride = i * cell_width_;
+      organized_pcd->block(cell_row_stride + outer_cell_stride, 0, cell_width_, 3) =
+          unorganized_data.block(i * image_width + (cell_id / number_horizontal_cells_ * image_width * cell_height_) +
+                                     (cell_id * cell_width_) % image_width,
+                                 0, cell_height_, 3);
+    }
+  }
+}
 
 }  // namespace deplex

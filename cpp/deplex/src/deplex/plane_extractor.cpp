@@ -72,15 +72,6 @@ class PlaneExtractor::Impl {
   Eigen::MatrixXi labels_map_;
 
   /**
-   * Organize point cloud, so that points corresponding to one cell lie sequentially in memory.
-   *
-   * @param unorganized_data Points matrix [Nx3] with default Eigen alignment (RowMajor).
-   * @returns Cell-wise organized points (RowMajor).
-   */
-  void cellContinuousOrganize(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
-                              Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd);
-
-  /**
    * Initialize histogram from planar cells of cell grid.
    *
    * @param cell_grid Cell Grid.
@@ -175,22 +166,11 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
     throw std::runtime_error("Error! Number of points doesn't match image shape: " + msg_points_size +
                              " != " + msg_height + " x " + msg_width);
   }
-  // 0. Organize PCD to cell-continuous data
-#ifdef BENCHMARK_LOGGING
-  auto time_cell_continuous_organize = std::chrono::high_resolution_clock::now();
-#endif
-  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cell_continuous_points(pcd_array.rows(), pcd_array.cols());
-  cellContinuousOrganize(pcd_array, &cell_continuous_points);
-
-#ifdef BENCHMARK_LOGGING
-  std::clog << "[BenchmarkLogging] Cell Continuous Organize: "
-            << get_benchmark_time<decltype(std::chrono::microseconds())>(time_cell_continuous_organize) << '\n';
-#endif
   // 1. Initialize cell grid (Planarity estimation)
 #ifdef BENCHMARK_LOGGING
   auto time_init_cell_grid = std::chrono::high_resolution_clock::now();
 #endif
-  CellGrid cell_grid(cell_continuous_points, config_, nr_horizontal_cells_, nr_vertical_cells_);
+  CellGrid cell_grid(pcd_array, config_, nr_horizontal_cells_, nr_vertical_cells_);
 #ifdef BENCHMARK_LOGGING
   std::clog << "[BenchmarkLogging] Cell Grid Initialization: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_init_cell_grid) << '\n';
@@ -257,25 +237,6 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
   // 7. Cleanup
   cleanArtifacts();
   return labels;
-}
-
-void PlaneExtractor::Impl::cellContinuousOrganize(
-    Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
-    Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd) {
-  int32_t cell_width = config_.patch_size;
-  int32_t cell_height = config_.patch_size;
-
-#pragma omp parallel for default(none) shared(cell_width, cell_height, organized_pcd, unorganized_data)
-  for (Eigen::Index cell_id = 0; cell_id < nr_vertical_cells_ * nr_horizontal_cells_; ++cell_id) {
-    Eigen::Index outer_cell_stride = cell_width * cell_height * cell_id;
-    for (Eigen::Index i = 0; i < cell_height; ++i) {
-      Eigen::Index cell_row_stride = i * cell_width;
-      organized_pcd->block(cell_row_stride + outer_cell_stride, 0, cell_width, 3) =
-          unorganized_data.block(i * image_width_ + (cell_id / nr_horizontal_cells_ * image_width_ * cell_height) +
-                                     (cell_id * cell_width) % image_width_,
-                                 0, cell_height, 3);
-    }
-  }
 }
 
 NormalsHistogram PlaneExtractor::Impl::initializeHistogram(CellGrid const& cell_grid) {

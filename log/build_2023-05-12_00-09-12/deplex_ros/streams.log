@@ -1,0 +1,31 @@
+[0.008s] Invoking command in '/home/achains/CLionProjects/deplex/build/deplex_ros': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/local/bin/cmake /home/achains/CLionProjects/deplex -DCMAKE_INSTALL_PREFIX=/home/achains/CLionProjects/deplex/install/deplex_ros
+[0.019s] -- No CMAKE_BUILD_TYPE specified, default to Release.
+[0.021s] -- Found ament_cmake: 1.3.3 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.071s] Traceback (most recent call last):
+[0.071s]   File "/opt/ros/humble/lib/python3.10/site-packages/ament_package/templates.py", line 19, in <module>
+[0.071s]     import importlib.resources as importlib_resources
+[0.071s] ModuleNotFoundError: No module named 'importlib.resources'
+[0.071s] 
+[0.071s] During handling of the above exception, another exception occurred:
+[0.071s] 
+[0.071s] Traceback (most recent call last):
+[0.071s]   File "/opt/ros/humble/share/ament_cmake_core/cmake/package_templates/templates_2_cmake.py", line 21, in <module>
+[0.071s]     from ament_package.templates import get_environment_hook_template_path
+[0.071s]   File "/opt/ros/humble/lib/python3.10/site-packages/ament_package/templates.py", line 21, in <module>
+[0.071s]     import importlib_resources
+[0.071s] ModuleNotFoundError: No module named 'importlib_resources'
+[0.073s] CMake Error at /opt/ros/humble/share/ament_cmake_core/cmake/ament_cmake_package_templates-extras.cmake:41 (message):
+[0.073s]   execute_process(/usr/local/bin/python3.6
+[0.073s]   /opt/ros/humble/share/ament_cmake_core/cmake/package_templates/templates_2_cmake.py
+[0.073s]   /home/achains/CLionProjects/deplex/build/deplex_ros/ros2/ament_cmake_package_templates/templates.cmake)
+[0.073s]   returned error code 1
+[0.073s] Call Stack (most recent call first):
+[0.073s]   /opt/ros/humble/share/ament_cmake_core/cmake/ament_cmake_coreConfig.cmake:41 (include)
+[0.073s]   /opt/ros/humble/share/ament_cmake/cmake/ament_cmake_export_dependencies-extras.cmake:15 (find_package)
+[0.073s]   /opt/ros/humble/share/ament_cmake/cmake/ament_cmakeConfig.cmake:41 (include)
+[0.074s]   ros2/CMakeLists.txt:1 (find_package)
+[0.074s] 
+[0.074s] 
+[0.074s] -- Configuring incomplete, errors occurred!
+[0.074s] See also "/home/achains/CLionProjects/deplex/build/deplex_ros/CMakeFiles/CMakeOutput.log".
+[0.075s] Invoked command in '/home/achains/CLionProjects/deplex/build/deplex_ros' returned '1': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/local/bin/cmake /home/achains/CLionProjects/deplex -DCMAKE_INSTALL_PREFIX=/home/achains/CLionProjects/deplex/install/deplex_ros
