@@ -37,6 +37,10 @@ __pycache__
 deplex.egg-info/
 wheelhouse/
 
+# ROS
+log
+install
+
 # IDE
 .idea
 

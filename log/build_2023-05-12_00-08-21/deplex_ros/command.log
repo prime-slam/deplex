@@ -1,2 +1,0 @@
-Invoking command in '/home/achains/CLionProjects/deplex/build/deplex_ros': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/local/bin/cmake /home/achains/CLionProjects/deplex -DCMAKE_INSTALL_PREFIX=/home/achains/CLionProjects/deplex/install/deplex_ros
-Invoked command in '/home/achains/CLionProjects/deplex/build/deplex_ros' returned '1': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/local/bin/cmake /home/achains/CLionProjects/deplex -DCMAKE_INSTALL_PREFIX=/home/achains/CLionProjects/deplex/install/deplex_ros
