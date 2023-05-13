@@ -30,3 +30,22 @@
 *.exe
 *.out
 *.app
+
+# Python
+__pycache__
+.eggs
+deplex.egg-info/
+wheelhouse/
+
+# ROS
+log
+install
+
+# IDE
+.idea
+
+# Build dir
+cmake-build-debug
+cmake-build-release
+cmake-build-relwithdebinfo
+build

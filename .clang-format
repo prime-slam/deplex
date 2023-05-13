@@ -1,0 +1,5 @@
+BasedOnStyle: google
+DerivePointerAlignment: false
+IncludeBlocks: Preserve
+SeparateDefinitionBlocks: Always
+ColumnLimit: 120

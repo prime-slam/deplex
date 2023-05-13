@@ -1,0 +1,145 @@
+name: Cross-platform Python wheels
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  linux_wheel:
+    name: Build wheel on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    container:
+      image: quay.io/pypa/manylinux2014_x86_64:2022-12-11-145d107
+      options: --user root
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Add git safe directory
+        run: git config --global --add safe.directory /__w/deplex/deplex
+
+      - name: Build Python wheel
+        run: |
+          chmod -R +x tools/* \
+          && tools/linux-wheels.sh
+          git status
+          git diff tools/macos-wheels.sh
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./wheelhouse
+
+  macos_wheel:
+    name: Build wheel on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-11 ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Git fetch
+        run: | 
+          git fetch --prune --unshallow --recurse-submodules=no
+          git restore .
+
+      - name: Build Python wheel
+        run: |
+          chmod -R +x tools/* \
+          && tools/macos-wheels.sh
+          git status
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./wheelhouse
+
+  windows_wheel:
+    name: Build wheel on ${{ matrix.os }} ${{ matrix.arch }} Py-${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-2019 ]
+        arch: [ x64 ]
+        python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10" ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Display Python version
+        run: python --version
+
+      - name: Build Python wheel
+        run: ./tools/windows-wheels.cmd
+
+      - name: Run examples
+        run: |
+          python -m pip install deplex --find-links=./build/wheels
+          python ./examples/python/process_cloud.py
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./build/wheels
+
+  test_wheel:
+    name: Test Python ${{ matrix.python-version }} wheel on ${{ matrix.os }}
+    needs: [linux_wheel, macos_wheel, windows_wheel]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        python-version: [ "3.10" ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: wheels
+          path: wheels
+
+      - name: Install deplex package
+        env:
+          py_version: ${{ matrix.python-version }}
+        run: |
+          python -m pip install deplex --find-links=./wheels
+
+      - name: Install Test requirements
+        run: |
+          python -m pip install -r python/requirements_test.txt
+
+      - name: Python tests
+        run: |
+          python -m pytest python
+
+  publish_pypi:
+    name: Publish wheel to PyPI
+    needs: test_wheel
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_GLOBAL }}
+          repository_url: https://test.pypi.org/legacy/
+          packages_dir: wheels/
+          verbose: true
