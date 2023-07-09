@@ -143,6 +143,7 @@ PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Co
       image_height_(image_height),
       image_width_(image_width),
       labels_map_(Eigen::MatrixXi::Zero(nr_vertical_cells_, nr_horizontal_cells_)) {
+  config_.patch_size = std::min(config_.patch_size, std::min(image_height_, image_width_));
   if (config.patch_size == 0) {
     throw std::runtime_error("Error! Invalid config parameter: patchSize(" + std::to_string(config.patch_size) +
                              "). patchSize has to be positive.");
