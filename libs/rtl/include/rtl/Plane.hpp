@@ -1,57 +1,34 @@
 #ifndef RTL_PLANE_HEADER
 #define RTL_PLANE_HEADER
 
-#include <rtl/Base.hpp>
+#include "Base.hpp"
 #include <cmath>
 #include <limits>
 #include <random>
 
-class Point
+
+class PlaneEstimator : virtual public RTL::Estimator<Eigen::Vector4f, Eigen::Vector3f, Eigen::MatrixX3f>
 {
 public:
-    Point() : x_(0), y_(0), z_(0) {}
-
-    Point(float x, float y, float z) : x_(x), y_(y), z_(z) { }
-
-    float x_, y_, z_;
-};
-
-class Plane
-{
-public: 
-    Plane() : a_(0), b_(0), c_(0), d_(0) {}
-
-    Plane(float a, float b, float c, float d) : a_(a), b_(b), c_(c), d_(d) {}
-    
-    friend std::ostream& operator<<(std::ostream& out, const Plane& plane) {
-      return out << plane.a_ << ' ' << plane.b_ << ' ' << plane.c_ << ' ' << plane.d_;
-    }
-
-    float a_, b_, c_, d_;
-};
-
-class PlaneEstimator : virtual public RTL::Estimator<Plane, Point, std::vector<Point> >
-{
-public:
-    virtual Plane ComputeModel(const std::vector<Point>& data, const std::set<int>& samples)
+    virtual Eigen::Vector4f ComputeModel(const Eigen::MatrixX3f& data, const std::set<int>& samples)
     {
       auto it = samples.begin();
 
-      Point p0 = data[*it++];
-      Point p1 = data[*it++];
-      Point p2 = data[*it++];
+      auto p0 = data.row(*it++);
+      auto p1 = data.row(*it++);
+      auto p2 = data.row(*it++);
 
-      float x0 = p0.x_;
-      float x1 = p1.x_;
-      float x2 = p2.x_;
+      float x0 = p0[0];
+      float x1 = p1[0];
+      float x2 = p2[0];
 
-      float y0 = p0.y_;
-      float y1 = p1.y_;
-      float y2 = p2.y_;
+      float y0 = p0[1];
+      float y1 = p1[1];
+      float y2 = p2[1];
 
-      float z0 = p0.z_;
-      float z1 = p1.z_;
-      float z2 = p2.z_;
+      float z0 = p0[2];
+      float z1 = p1[2];
+      float z2 = p2[2];
 
       float a = (z0*(y1 - y2)) / (x0*y1 - x1*y0 - x0*y2 + x2*y0 + x1*y2 - x2*y1) - (z1*(y0 - y2)) / (x0*y1 - x1*y0 - x0*y2 + x2*y0 + x1*y2 - x2*y1) + (z2*(y0 - y1)) / (x0*y1 - x1*y0 - x0*y2 + x2*y0 + x1*y2 - x2*y1);
 		  float b = (z1*(x0 - x2)) / (x0*y1 - x1*y0 - x0*y2 + x2*y0 + x1*y2 - x2*y1) - (z0*(x1 - x2)) / (x0*y1 - x1*y0 - x0*y2 + x2*y0 + x1*y2 - x2*y1) - (z2*(x0 - x1)) / (x0*y1 - x1*y0 - x0*y2 + x2*y0 + x1*y2 - x2*y1);
@@ -60,12 +37,15 @@ public:
 
       float l = sqrt(a * a + b * b + c * c);
 
-      return Plane(a / l, b / l, c / l, d / l);
+      Eigen::Vector4f plane_model;
+      plane_model << a / l, b / l, c / l, d / l;
+
+      return plane_model;
     }
 
-    virtual double ComputeError(const Plane& plane, const Point& point)
+    virtual double ComputeError(const Eigen::Vector4f& plane, const Eigen::Vector3f& point)
     {
-        return plane.a_ * point.x_ + plane.b_ * point.y_ + plane.c_ * point.z_ + plane.d_;
+        return plane[0] * point[0] + plane[1] * point[1] + plane[2] * point[2] + plane[3];
     }
 }; // End of 'PlaneEstimator'
 

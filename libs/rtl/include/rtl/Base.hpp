@@ -1,5 +1,5 @@
-#ifndef __RTL_BASE__
-#define __RTL_BASE__
+#ifndef RTL_BASE_HEADER
+#define RTL_BASE_HEADER
 
 #include <set>
 #include <vector>

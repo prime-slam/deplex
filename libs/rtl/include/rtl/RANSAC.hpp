@@ -1,5 +1,5 @@
-#ifndef __RTL_RANSAC__
-#define __RTL_RANSAC__
+#ifndef PLANE_RANSAC_HEADER
+#define PLANE_RANSAC_HEADER
 
 #include "Base.hpp"
 #include <random>
@@ -9,11 +9,10 @@
 namespace RTL
 {
 
-template <class Model, class Datum, class Data>
-class RANSAC
+class PlaneRANSAC
 {
 public:
-    RANSAC(Estimator<Model, Datum, Data>* estimator)
+    PlaneRANSAC(Estimator<Eigen::Vector4f, Eigen::Vector3f, Eigen::MatrixX3f>* estimator)
     {
         assert(estimator != NULL);
 
@@ -23,13 +22,13 @@ public:
         SetParamTargetInliersRatio();
     }
 
-    virtual double FindBest(Model& best, const Data& data, int N, int M)
+    virtual double FindBest(Eigen::Vector4f& best, const Eigen::MatrixX3f& data, int N, int M)
     {
         assert(N > 0 && M > 0);
 
         Initialize(data, N);
 
-        // Run RANSAC
+        // Run PlaneRANSAC
         double bestloss = HUGE_VAL;
         int iteration = 0;
         while (IsContinued(iteration, N - bestloss, N))
@@ -37,7 +36,7 @@ public:
             iteration++;
 
             // 1. Generate hypotheses
-            Model model = GenerateModel(data, M);
+            Eigen::Vector4f model = GenerateModel(data, M);
 
             // 2. Evaluate the hypotheses
             double loss = EvaluateModel(model, data, N);
@@ -51,12 +50,12 @@ RANSAC_FIND_BEST_EXIT:
         return bestloss;
     }
 
-    virtual std::vector<int> FindInliers(const Model& model, const Data& data, int N)
+    virtual std::vector<int> FindInliers(const Eigen::Vector4f& model, const Eigen::MatrixX3f& data, int N)
     {
         std::vector<int> inliers;
         for (int i = 0; i < N; i++)
         {
-            double error = toolEstimator->ComputeError(model, data[i]);
+            double error = toolEstimator->ComputeError(model, data.row(i));
             if (fabs(error) < paramThreshold) inliers.push_back(i);
         }
         return inliers;
@@ -79,7 +78,7 @@ protected:
       return (iteration < paramIteration && inliers_count < paramTargetInliersRatio * sample_size); 
     }
 
-    virtual Model GenerateModel(const Data& data, int M)
+    virtual Eigen::Vector4f GenerateModel(const Eigen::MatrixX3f& data, int M)
     {
         std::set<int> samples;
         while (static_cast<int>(samples.size()) < M)
@@ -87,33 +86,33 @@ protected:
         return toolEstimator->ComputeModel(data, samples);
     }
 
-    virtual double EvaluateModel(const Model& model, const Data& data, int N)
+    virtual double EvaluateModel(const Eigen::Vector4f& model, const Eigen::MatrixX3f& data, int N)
     {
         double loss = 0;
         for (int i = 0; i < N; i++)
         {
-            double error = toolEstimator->ComputeError(model, data[i]);
+            double error = toolEstimator->ComputeError(model, data.row(i));
             loss += (fabs(error) >= paramThreshold);
         }
         return loss;
     }
 
-    virtual bool UpdateBest(Model& bestModel, double& bestCost, const Model& model, double cost)
+    virtual bool UpdateBest(Eigen::Vector4f& bestModel, double& bestCost, const Eigen::Vector4f& model, double cost)
     {
         bestModel = model;
         bestCost = cost;
         return true;
     }
 
-    virtual void Initialize(const Data& data, int N) { toolUniform = std::uniform_int_distribution<int>(0, N - 1); }
+    virtual void Initialize(const Eigen::MatrixX3f& data, int N) { toolUniform = std::uniform_int_distribution<int>(0, N - 1); }
 
-    virtual void Terminate(const Model& bestModel, const Data& data, int N) { }
+    virtual void Terminate(const Eigen::Vector4f& bestModel, const Eigen::MatrixX3f& data, int N) { }
 
     std::mt19937 toolGenerator;
 
     std::uniform_int_distribution<int> toolUniform;
 
-    Estimator<Model, Datum, Data>* toolEstimator;
+    Estimator<Eigen::Vector4f, Eigen::Vector3f, Eigen::MatrixX3f>* toolEstimator;
 
     int paramSampleSize;
 
@@ -122,7 +121,7 @@ protected:
     double paramThreshold;
 
     double paramTargetInliersRatio;
-}; // End of 'RANSAC'
+}; // End of 'PlaneRANSAC'
 
 } // End of 'RTL'
 
