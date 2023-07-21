@@ -16,9 +16,12 @@
 #pragma once
 
 #include <cstdint>
+#include <thread>
 
 #include "cell_segment_stat.h"
 #include "deplex/config.h"
+
+#define sizeThreads 4 // Optimal 4 - 8
 
 namespace deplex {
 /**

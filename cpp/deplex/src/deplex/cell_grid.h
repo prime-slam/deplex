@@ -86,6 +86,9 @@ class CellGrid {
    */
   size_t size() const;
 
+  inline void threadFunction(uint id_thread, config::Config const& config,
+                      std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> const& arr);
+
  private:
   int32_t cell_width_;
   int32_t cell_height_;
