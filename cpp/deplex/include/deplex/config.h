@@ -72,12 +72,12 @@ struct Config {
   // Maximum depth-discontinuity occurrences inside one cell
   int32_t max_number_depth_discontinuity = 1;
   // RANSAC refinement flag
-  bool ransac_refinement = 0;
+  bool ransac_refinement = false;
   // Maximum number of RANSAC iterations
   int32_t ransac_max_iterations = 1000;
   // RANSAC Threshold
   float ransac_threshold = 1.;
-  // Minimal inliers ratio for plane to be valid
+  // Minimal inliers ratio for plane points to be valid
   float ransac_inliers_ratio = 0.9;
 };
 }  // namespace config

@@ -116,9 +116,8 @@ class PlaneExtractor::Impl {
    * @param pcd_array Points matrix [Nx3] of ORGANIZED point cloud
    * i.e. points that refer to organized image structure.
    * @param labels Flatten array of coarse planes labels
-   * @returns Flatten array of labels after plane refinement
    */
-  Eigen::VectorXi refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi const& labels);
+  void refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi& labels);
 
   /**
    * Clean all used data for sufficient sequential image computing.
@@ -254,7 +253,7 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
 #ifdef BENCHMARK_LOGGING
     auto time_refinement = std::chrono::high_resolution_clock::now();
 #endif
-    labels = refineLabels(pcd_array, labels);
+    refineLabels(pcd_array, labels);
 #ifdef BENCHMARK_LOGGING
     std::clog << "[BenchmarkLogging] Labels refinement: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_labels_creation) << '\n';
@@ -469,13 +468,11 @@ Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& 
   return labels.reshaped<Eigen::RowMajor>();
 }
 
-Eigen::VectorXi PlaneExtractor::Impl::refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi const& labels) {
-  Eigen::VectorXi refined_labels(labels);
-
-  std::vector<std::vector<int32_t>> labels_indeces(labels.maxCoeff());
+void PlaneExtractor::Impl::refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi& labels) {
+  std::vector<std::vector<int32_t>> labels_indices(labels.maxCoeff());
   for (int32_t i = 0; i < labels.size(); ++i) {
     if (labels[i] != 0) {
-      labels_indeces[labels[i] - 1].push_back(i);
+      labels_indices[labels[i] - 1].push_back(i);
     }
   }
 
@@ -485,31 +482,29 @@ Eigen::VectorXi PlaneExtractor::Impl::refineLabels(Eigen::MatrixX3f const& pcd_a
   algorithm.SetParamTargetInliersRatio(config_.ransac_inliers_ratio);
   algorithm.SetParamThreshold(config_.ransac_threshold);
 
-  for (int32_t label = 0; label < labels_indeces.size(); ++label) {
-    if (labels_indeces[label].size() == 0) {
+  for (int32_t label = 0; label < labels_indices.size(); ++label) {
+    if (labels_indices[label].size() == 0) {
       continue;
     }
 
     Eigen::Vector4f plane_model(Eigen::Vector4f::Zero());
-    Eigen::MatrixX3f plane_pcd(labels_indeces[label].size(), pcd_array.cols());
-    for (int32_t row_id = 0; row_id < labels_indeces[label].size(); ++row_id) {
-      plane_pcd.row(row_id) = pcd_array.row(labels_indeces[label][row_id]);
+    Eigen::MatrixX3f plane_pcd(labels_indices[label].size(), pcd_array.cols());
+    for (int32_t row_id = 0; row_id < labels_indices[label].size(); ++row_id) {
+      plane_pcd.row(row_id) = pcd_array.row(labels_indices[label][row_id]);
     }
 
-    algorithm.FindBest(plane_model, plane_pcd, labels_indeces[label].size(), plane_pcd.cols());
-    auto inliers = algorithm.FindInliers(plane_model, plane_pcd, labels_indeces[label].size());
+    algorithm.FindBest(plane_model, plane_pcd, labels_indices[label].size(), plane_pcd.cols());
+    auto inliers = algorithm.FindInliers(plane_model, plane_pcd, labels_indices[label].size());
 
     int32_t current_inlier = 0;
-    for (int32_t i = 0; i < labels_indeces[label].size() && current_inlier < inliers.size(); ++i) {
+    for (int32_t i = 0; i < labels_indices[label].size() && current_inlier < inliers.size(); ++i) {
       if (inliers[current_inlier] != i) {
-        refined_labels[labels_indeces[label][i]] = 0;
+        labels[labels_indices[label][i]] = 0;
       } else {
         ++current_inlier;
       }
     }
   }
-
-  return refined_labels;
 }
 
 #ifdef DEBUG_DEPLEX
