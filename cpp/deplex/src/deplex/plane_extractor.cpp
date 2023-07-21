@@ -117,7 +117,7 @@ class PlaneExtractor::Impl {
    * i.e. points that refer to organized image structure.
    * @param labels Flatten array of coarse planes labels
    */
-  void refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi& labels);
+  void refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi* labels);
 
   /**
    * Clean all used data for sufficient sequential image computing.
@@ -253,7 +253,7 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
 #ifdef BENCHMARK_LOGGING
     auto time_refinement = std::chrono::high_resolution_clock::now();
 #endif
-    refineLabels(pcd_array, labels);
+    refineLabels(pcd_array, &labels);
 #ifdef BENCHMARK_LOGGING
     std::clog << "[BenchmarkLogging] Labels refinement: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_labels_creation) << '\n';
@@ -468,11 +468,11 @@ Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& 
   return labels.reshaped<Eigen::RowMajor>();
 }
 
-void PlaneExtractor::Impl::refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi& labels) {
-  std::vector<std::vector<int32_t>> labels_indices(labels.maxCoeff());
-  for (int32_t i = 0; i < labels.size(); ++i) {
-    if (labels[i] != 0) {
-      labels_indices[labels[i] - 1].push_back(i);
+void PlaneExtractor::Impl::refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi* labels) {
+  std::vector<std::vector<int32_t>> labels_indices((*labels).maxCoeff());
+  for (int32_t i = 0; i < (*labels).size(); ++i) {
+    if ((*labels)[i] != 0) {
+      labels_indices[(*labels)[i] - 1].push_back(i);
     }
   }
 
@@ -499,7 +499,7 @@ void PlaneExtractor::Impl::refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen
     int32_t current_inlier = 0;
     for (int32_t i = 0; i < labels_indices[label].size() && current_inlier < inliers.size(); ++i) {
       if (inliers[current_inlier] != i) {
-        labels[labels_indices[label][i]] = 0;
+        (*labels)[labels_indices[label][i]] = 0;
       } else {
         ++current_inlier;
       }
