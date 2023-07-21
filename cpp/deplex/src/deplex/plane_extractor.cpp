@@ -469,8 +469,8 @@ Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& 
 }
 
 void PlaneExtractor::Impl::refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi* labels) {
-  std::vector<std::vector<int32_t>> labels_indices((*labels).maxCoeff());
-  for (int32_t i = 0; i < (*labels).size(); ++i) {
+  std::vector<std::vector<int32_t>> labels_indices(labels->maxCoeff());
+  for (int32_t i = 0; i < labels->size(); ++i) {
     if ((*labels)[i] != 0) {
       labels_indices[(*labels)[i] - 1].push_back(i);
     }
