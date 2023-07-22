@@ -19,10 +19,10 @@
 
 namespace deplex {
 
-inline void CellGrid::threadFunction(uint id_thread, config::Config const& config,
-                              std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> const& arr) {
-  for (Eigen::Index cell_id = id_thread; cell_id < number_horizontal_cells_ * number_vertical_cells_; cell_id += sizeThreads) {
-    cell_grid_[cell_id] = CellSegment(arr[cell_id], config);
+inline void CellGrid::parallelInitializationLCellGrid(uint id_thread, config::Config const& config,
+                              std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> const& cell_points) {
+  for (Eigen::Index cell_id = id_thread; cell_id < number_horizontal_cells_ * number_vertical_cells_; cell_id += size_threads) {
+    cell_grid_[cell_id] = CellSegment(cell_points[cell_id], config);
   }
 }
 
@@ -40,28 +40,25 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
   Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cell_continuous_points(points.rows(), points.cols());
   cellContinuousOrganize(points, &cell_continuous_points);
 
-  Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>> cell_points(cell_continuous_points.data(),
-                                                                                         cell_width_ * cell_height_, 3);
-
   std::vector<std::thread> threads;
-  std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> arr;
+  std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> cell_points;
 
-  arr.reserve(number_horizontal_cells_ * number_vertical_cells_);
-  threads.reserve(sizeThreads);
+  cell_points.reserve(number_horizontal_cells_ * number_vertical_cells_);
+  threads.reserve(size_threads);
 
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;
-    arr.emplace_back(cell_continuous_points.data() + offset, cell_width_ * cell_height_, 3);
+    cell_points.emplace_back(cell_continuous_points.data() + offset, cell_width_ * cell_height_, 3);
   }
 
-  for (uint i = 0; i < sizeThreads; i++) {
-    threads.emplace_back(&CellGrid::threadFunction, this, i, config, arr);
+  for (uint i = 0; i < size_threads; i++) {
+    threads.emplace_back(&CellGrid::parallelInitializationLCellGrid, this, i, config, cell_points);
   }
 
   for (auto& th: threads) {
     th.join();
   }
-
+  
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     parent_[cell_id] = cell_id;
     planar_mask_[cell_id] = cell_grid_[cell_id].isPlanar();

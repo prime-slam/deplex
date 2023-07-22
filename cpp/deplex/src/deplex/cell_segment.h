@@ -21,7 +21,7 @@
 #include "cell_segment_stat.h"
 #include "deplex/config.h"
 
-#define sizeThreads 4 // Optimal 4 - 8
+#define size_threads 8 // Optimal 4 - 8
 
 namespace deplex {
 /**

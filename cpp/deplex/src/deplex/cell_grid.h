@@ -86,8 +86,8 @@ class CellGrid {
    */
   size_t size() const;
 
-  inline void threadFunction(uint id_thread, config::Config const& config,
-                      std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> const& arr);
+  inline void parallelInitializationLCellGrid(uint id_thread, config::Config const& config,
+                      std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> const& cell_points);
 
  private:
   int32_t cell_width_;

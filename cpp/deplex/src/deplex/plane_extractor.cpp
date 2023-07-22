@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <numeric>
 #include <queue>
+#include <iostream>
+
 #if defined(DEBUG_DEPLEX) || defined(BENCHMARK_LOGGING)
 #include <fstream>
 #include <iostream>
@@ -62,6 +64,11 @@ class PlaneExtractor::Impl {
    * 0-value label refers to non-planar segment.
    */
   Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
+
+  inline void parallelInitializationLabels(uint id_thread,
+                                           uint region_size,
+                                           Eigen::VectorXi &labels,
+                                           std::vector<int32_t> const& merge_labels);
 
  private:
   config::Config config_;
@@ -412,31 +419,29 @@ std::vector<std::vector<bool>> PlaneExtractor::Impl::getConnectedComponents(size
   return planes_assoc_matrix;
 }
 
+inline void PlaneExtractor::Impl::parallelInitializationLabels(uint id_thread,
+                                           uint region_size,
+                                           Eigen::VectorXi &labels,
+                                           std::vector<int32_t> const& merge_labels) {
+  for (auto i = id_thread; i < labels.rows(); i+= size_threads) {
+    auto label = labels_map_.row((i / image_width_ / region_size))[(i % image_width_ / region_size)];
+    if (label != 0) {
+      labels[i] = merge_labels[label - 1] + 1;
+    }
+  }
+}
+
 Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& merge_labels) {
-  Eigen::MatrixXi labels(Eigen::MatrixXi::Zero(image_height_, image_width_));
+  Eigen::VectorXi labels(Eigen::VectorXi::Zero(image_height_ * image_width_));
 
-  int32_t cell_width = config_.patch_size;
-  int32_t cell_height = config_.patch_size;
-
-  int32_t stacked_cell_id = 0;
-  for (auto row = 0; row < labels_map_.rows(); ++row) {
-    for (auto col = 0; col < labels_map_.cols(); ++col) {
-      auto cell_row = stacked_cell_id / nr_horizontal_cells_;
-      auto cell_col = stacked_cell_id % nr_horizontal_cells_;
-      // Fill cell with label
-      auto label_row = cell_row * cell_height;
-      auto label_col = cell_col * cell_width;
-      for (auto i = label_row; i < label_row + cell_height; ++i) {
-        for (auto j = label_col; j < label_col + cell_width; ++j) {
-          auto label = labels_map_.row(row)[col];
-          labels.row(i)[j] = (label == 0 ? 0 : merge_labels[label - 1] + 1);
-        }
-      }
-      ++stacked_cell_id;
+  for (auto i = 0; i < labels.rows(); i++) {
+    auto label = labels_map_.row((i / image_width_ / config_.patch_size))[(i % image_width_ / config_.patch_size)];
+    if (label != 0) {
+      labels[i] = merge_labels[label - 1] + 1;
     }
   }
 
-  return labels.reshaped<Eigen::RowMajor>();
+  return labels;
 }
 
 #ifdef DEBUG_DEPLEX
