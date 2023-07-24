@@ -51,7 +51,7 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
     cell_points.emplace_back(cell_continuous_points.data() + offset, cell_width_ * cell_height_, 3);
   }
 
-  for (uint i = 0; i < size_threads; i++) {
+  for (size_t i = 0; i < size_threads; i++) {
     threads.emplace_back(&CellGrid::parallelInitializationLCellGrid, this, i, config, cell_points);
   }
 

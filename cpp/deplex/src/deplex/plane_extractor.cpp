@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <numeric>
 #include <queue>
-#include <iostream>
 
 #if defined(DEBUG_DEPLEX) || defined(BENCHMARK_LOGGING)
 #include <fstream>

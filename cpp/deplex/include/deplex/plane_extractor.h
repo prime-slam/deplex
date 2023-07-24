@@ -21,6 +21,8 @@
 
 #include "deplex/config.h"
 
+using uint = unsigned int;
+
 namespace deplex {
 /**
  * Algorithm for plane extraction from RGB-D data.

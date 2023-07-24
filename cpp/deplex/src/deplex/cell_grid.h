@@ -19,6 +19,8 @@
 
 #include "cell_segment.h"
 
+using uint = unsigned int;
+
 namespace deplex {
 /**
  * Class to store and work with cell-related data
