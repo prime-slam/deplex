@@ -339,7 +339,9 @@ std::vector<bool> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vect
     double d_current = cell_grid[current_seed].getStat().getD();
     Eigen::Vector3f normal_current = cell_grid[current_seed].getStat().getNormal();
 
-    for (auto neighbour : cell_grid.getNeighbours(current_seed)) {
+    std::vector<size_t> neighbours = cell_grid.getNeighbours(current_seed);
+
+    for (auto neighbour : neighbours) {
       if (!unassigned[neighbour] || activation_map[neighbour]) {
         continue;
       }
@@ -423,7 +425,7 @@ inline void PlaneExtractor::Impl::parallelInitializationLabels(uint id_thread,
                                            Eigen::VectorXi &labels,
                                            std::vector<int32_t> const& merge_labels) {
   for (auto i = id_thread; i < labels.rows(); i+= size_threads) {
-    auto label = labels_map_.row((i / image_width_ / region_size))[(i % image_width_ / region_size)];
+    auto label = labels_map_.row(i / image_width_ / region_size)[i % image_width_ / region_size];
     if (label != 0) {
       labels[i] = merge_labels[label - 1] + 1;
     }
