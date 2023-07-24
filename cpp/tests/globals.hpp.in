@@ -22,6 +22,7 @@ namespace icl {
 constexpr const int image_width = 640, image_height = 480;
 constexpr const char* intrinsics = "${ICL_INTRINSICS}";
 constexpr const char* config = "${ICL_CONFIG}";
+constexpr const char* sample_image = "${ICL_SAMPLE_IMAGE}";
 }  // namespace icl
 
 // TUM freiburg3 long_office_validation dataset
