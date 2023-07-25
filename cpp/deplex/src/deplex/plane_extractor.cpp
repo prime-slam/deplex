@@ -126,7 +126,7 @@ class PlaneExtractor::Impl {
    * @param cell_grid Cell Grid.
    * @returns Vector of activated cells after growSeed call.
    */
-  std::vector<bool> growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
+  std::vector<size_t> growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
                              CellGrid const& cell_grid) const;
 
   /**
@@ -280,20 +280,17 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
     }
     // 3. Grow seed
     CellSegment plane_candidate(cell_grid[seed_id]);
-    std::vector<bool> activation_map = growSeed(seed_id, unassigned_mask, cell_grid);
+    std::vector<size_t> activation_map = growSeed(seed_id, unassigned_mask, cell_grid);
 
     // 4. Merge activated cells & remove from hist
-    for (size_t i = 0; i < activation_map.size(); ++i) {
-      if (activation_map[i]) {
-        plane_candidate += cell_grid[i];
-        hist.removePoint(static_cast<int32_t>(i));
-        unassigned_mask[i] = false;
-        --remaining_planar_cells;
-      }
+    for (auto &v : activation_map) {
+      plane_candidate += cell_grid[v];
+      hist.removePoint(static_cast<int32_t>(v));
+      unassigned_mask[v] = false;
+      --remaining_planar_cells;
     }
-    size_t nr_cells_activated = std::count(activation_map.begin(), activation_map.end(), true);
 
-    if (nr_cells_activated < config_.min_region_growing_cells_activated) {
+    if (activation_map.size() < config_.min_region_growing_cells_activated) {
       continue;
     }
 
@@ -305,14 +302,8 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
       auto nr_curr_planes = static_cast<int32_t>(plane_segments.size());
       // Mark cells
       // TODO: Effective assigning by mask?
-      int stacked_cell_id = 0;
-      for (int32_t row_id = 0; row_id < nr_vertical_cells_; ++row_id) {
-        for (int32_t col_id = 0; col_id < nr_horizontal_cells_; ++col_id) {
-          if (activation_map[stacked_cell_id]) {
-            labels_map_.row(row_id)[col_id] = nr_curr_planes;
-          }
-          ++stacked_cell_id;
-        }
+      for (auto &v : activation_map) {
+        labels_map_.row(v / nr_horizontal_cells_)[v % nr_horizontal_cells_] = nr_curr_planes;
       }
     }
   }
@@ -320,17 +311,21 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
   return plane_segments;
 }
 
-std::vector<bool> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
+std::vector<size_t> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
                                                  CellGrid const& cell_grid) const {
   std::vector<bool> activation_map(unassigned.size(), false);
+  std::vector<size_t> cells_to_merge;
 
   if (!unassigned[seed_id]) {
-    return activation_map;
+    return cells_to_merge;
   }
+
+  cells_to_merge.reserve(unassigned.size());
 
   std::queue<Eigen::Index> seed_queue;
   seed_queue.push(seed_id);
   activation_map[seed_id] = true;
+  cells_to_merge.push_back(seed_id);
 
   while (!seed_queue.empty()) {
     Eigen::Index current_seed = seed_queue.front();
@@ -352,11 +347,12 @@ std::vector<bool> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vect
       double merge_dist = pow(normal_current.dot(mean_neighbour) + d_current, 2);
       if (cos_angle >= config_.min_cos_angle_merge && merge_dist <= cell_grid[neighbour].getMergeTolerance()) {
         activation_map[neighbour] = true;
+        cells_to_merge.push_back(neighbour);
         seed_queue.push(static_cast<Eigen::Index>(neighbour));
       }
     }
   }
-  return activation_map;
+  return cells_to_merge;
 }
 
 std::vector<int32_t> PlaneExtractor::Impl::findMergedLabels(std::vector<CellSegment>* plane_segments) {
