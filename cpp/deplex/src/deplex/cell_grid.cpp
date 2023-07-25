@@ -21,7 +21,7 @@ namespace deplex {
 
 inline void CellGrid::parallelInitializationLCellGrid(uint id_thread, config::Config const& config,
                               std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> const& cell_points) {
-  for (Eigen::Index cell_id = id_thread; cell_id < number_horizontal_cells_ * number_vertical_cells_; cell_id += size_threads) {
+  for (Eigen::Index cell_id = id_thread; cell_id < number_horizontal_cells_ * number_vertical_cells_; cell_id += config.number_threads) {
     cell_grid_[cell_id] = CellSegment(cell_points[cell_id], config);
   }
 }
@@ -44,14 +44,14 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
   std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> cell_points;
 
   cell_points.reserve(number_horizontal_cells_ * number_vertical_cells_);
-  threads.reserve(size_threads);
+  threads.reserve(config.number_threads);
 
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;
     cell_points.emplace_back(cell_continuous_points.data() + offset, cell_width_ * cell_height_, 3);
   }
 
-  for (size_t i = 0; i < size_threads; i++) {
+  for (size_t i = 0; i < config.number_threads; i++) {
     threads.emplace_back(&CellGrid::parallelInitializationLCellGrid, this, i, config, cell_points);
   }
 

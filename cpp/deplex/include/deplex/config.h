@@ -71,6 +71,8 @@ struct Config {
   float depth_discontinuity_threshold = 160;
   // Maximum depth-discontinuity occurrences inside one cell
   int32_t max_number_depth_discontinuity = 1;
+  // The number of threads used in parallel algorithms.
+  int32_t number_threads = 8;
 };
 }  // namespace config
 }  // namespace deplex

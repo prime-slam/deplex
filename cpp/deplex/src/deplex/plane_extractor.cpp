@@ -424,7 +424,7 @@ inline void PlaneExtractor::Impl::parallelInitializationLabels(uint id_thread,
                                            uint region_size,
                                            Eigen::VectorXi &labels,
                                            std::vector<int32_t> const& merge_labels) {
-  for (auto i = id_thread; i < labels.rows(); i+= size_threads) {
+  for (auto i = id_thread; i < labels.rows(); i+= config_.number_threads) {
     auto label = labels_map_.row(i / image_width_ / region_size)[i % image_width_ / region_size];
     if (label != 0) {
       labels[i] = merge_labels[label - 1] + 1;

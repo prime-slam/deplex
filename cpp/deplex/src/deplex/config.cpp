@@ -65,6 +65,8 @@ Config::Config(std::string const& config_path) {
       depth_discontinuity_threshold = std::stof(value);
     } else if (key == "maxNumberDepthDiscontinuity") {
       max_number_depth_discontinuity = std::stoi(value);
+    } else if (key == "number_threads") {
+      number_threads = std::stoi(value);
     } else {
       std::cerr << "Unknown parameter name: " << key << '\n';
     }
