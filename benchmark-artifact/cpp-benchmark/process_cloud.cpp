@@ -2,8 +2,6 @@
 #include <deplex/utils/depth_image.h>
 #include <deplex/utils/eigen_io.h>
 
-#include <Python.h>
-
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -80,15 +78,6 @@ int main(int argc, char* argv[]) {
   std::cout << "Found planes: " << found_planes << '\n';
   std::cout << "Elapsed time (mks): " << elapsed_time_mean << '\n';
   std::cout << "FPS: " << fps << '\n';
-
-//  Py_Initialize();
-//
-//  const char* pythonScript = "import sys\n"
-//      "print(sys.version)";
-//  PyRun_SimpleString(pythonScript);
-//
-//  Py_Finalize();
-
 
   return 0;
 }
