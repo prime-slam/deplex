@@ -7,6 +7,8 @@
 #include <iostream>
 #include <numeric>
 
+using uint = unsigned int;
+
 double calculateVariance(const Eigen::VectorXd& data, double mean) {
   double sum = 0;
 
