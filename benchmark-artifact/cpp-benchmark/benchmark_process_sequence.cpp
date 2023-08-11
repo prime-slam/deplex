@@ -75,8 +75,7 @@ int main(int argc, char* argv[]) {
     std::cout << ' ' << found_planes << " planes found" << std::endl;
   }
   deplex::utils::savePointCloudCSV(test_duration.cast<float>().transpose(),
-                                   data_dir / ("process_sequence_" + std::to_string(NUMBER_OF_SNAPSHOT)
-                                                                                + "_snapshot.csv"));
+                                   (data_dir / ("process_sequence_" + std::to_string(NUMBER_OF_SNAPSHOT) + "_snapshot.csv")).string());
 
   double elapsed_time_min = *std::min_element(test_duration.begin(), test_duration.end());
   double elapsed_time_max = *std::max_element(test_duration.begin(), test_duration.end());

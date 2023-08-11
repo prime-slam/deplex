@@ -59,7 +59,7 @@ int main() {
   found_planes = labels.maxCoeff();
   std::cout << image_path << ": " << found_planes << " planes found" << std::endl;
 
-  deplex::utils::savePointCloudCSV(test_duration.cast<float>().transpose(), data_dir / "process_cloud.csv");
+  deplex::utils::savePointCloudCSV(test_duration.cast<float>().transpose(), (data_dir / "process_cloud.csv").string());
 
   double elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0.0) / NUMBER_OF_RUNS;
 
