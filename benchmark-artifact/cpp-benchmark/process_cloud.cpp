@@ -19,7 +19,7 @@ double calculateVariance(const Eigen::VectorXd& data, double mean) {
   return sum;
 }
 
-int main(int argc, char* argv[]) {
+int main() {
   std::filesystem::path data_dir = std::filesystem::current_path().parent_path().parent_path().parent_path() / "benchmark-artifact/data";
   std::filesystem::path image_path = data_dir / "depth/000004415622.png";
   std::filesystem::path intrinsics_path = data_dir / "config/cPlusPlus/intrinsics.K";
