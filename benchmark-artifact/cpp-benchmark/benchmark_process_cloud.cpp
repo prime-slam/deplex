@@ -9,15 +9,14 @@
 
 using uint = unsigned int;
 
-double calculateVariance(const Eigen::VectorXd& data, double mean) {
-  double sum = 0;
+long long calculateVariance(const Eigen::VectorXi& data, long long mean) {
+  long long sum = 0;
 
-  for (double x: data) {
+  for (auto x: data) {
     sum += (x - mean) * (x - mean);
   }
 
-  sum /= double(data.size());
-
+  sum /= (data.size());
   return sum;
 }
 
@@ -27,12 +26,12 @@ int main() {
   std::filesystem::path intrinsics_path = data_dir / "config/cPlusPlus/intrinsics.K";
   std::filesystem::path config_path = data_dir / "config/TUM_fr3_long_val.ini";
 
-  auto                  start_time      = std::chrono::steady_clock::now();
-  auto                   end_time       = std::chrono::steady_clock::now();
-  double                    time;
+  auto                  start_time      = std::chrono::high_resolution_clock::now();
+  auto                   end_time       = std::chrono::high_resolution_clock::now();
+  long long                   time;
 
   int NUMBER_OF_RUNS = 20;
-  Eigen::VectorXd test_duration = Eigen::VectorXd::Zero(NUMBER_OF_RUNS);
+  Eigen::VectorXi test_duration = Eigen::VectorXi::Zero(NUMBER_OF_RUNS);
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
   Eigen::Matrix3f intrinsics(deplex::utils::readIntrinsics(intrinsics_path.string()));
@@ -47,37 +46,34 @@ int main() {
   for (int i = 0; i < NUMBER_OF_RUNS; ++i) {
     std::cout << "Iteration #" << i + 1 << std::endl;
 
-    start_time = std::chrono::steady_clock::now();
+    start_time = std::chrono::high_resolution_clock::now();
     labels = algorithm.process(pcd_array);
-    end_time = std::chrono::steady_clock::now();
+    end_time = std::chrono::high_resolution_clock::now();
 
-    time = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end_time - start_time).count();
-
-    test_duration[i] = time;
+    time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+    test_duration[i] = (int)time;
   }
 
   found_planes = labels.maxCoeff();
-  std::cout << image_path << ": " << found_planes << " planes found" << std::endl;
 
   deplex::utils::savePointCloudCSV(test_duration.cast<float>().transpose(), (data_dir / "process_cloud.csv").string());
 
-  double elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0.0) / NUMBER_OF_RUNS;
+  long long elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0) / NUMBER_OF_RUNS;
 
-  double dispersion = calculateVariance(test_duration, elapsed_time_mean);
+  long long dispersion = calculateVariance(test_duration, elapsed_time_mean);
   double standard_deviation = sqrt(dispersion);
   double standard_error = standard_deviation / sqrt(NUMBER_OF_RUNS);
 
   // 95% confidence interval
-  double lower_bound = elapsed_time_mean - 1.96 * (standard_error);
-  double upper_bound = elapsed_time_mean + 1.96 * (standard_error);
+  double lower_bound = (double)elapsed_time_mean - 1.96 * (standard_error);
+  double upper_bound = (double)elapsed_time_mean + 1.96 * (standard_error);
   auto fps = 1e6l / elapsed_time_mean;
 
-  std::cout << "\nDispersion: " << dispersion << std::endl;
+  std::cout << "\nFound planes: " << found_planes << '\n';
+  std::cout << "Dispersion: " << dispersion << std::endl;
   std::cout << "Standard deviation: " << standard_deviation << std::endl;
   std::cout << "Standard error: " << standard_error << std::endl;
   std::cout << "Confidence interval (95%): [" << lower_bound << "; " << upper_bound << "]\n\n";
-
-  std::cout << "Found planes: " << found_planes << '\n';
   std::cout << "Elapsed time (mks): " << elapsed_time_mean << '\n';
   std::cout << "FPS: " << fps << '\n';
 
