@@ -2,6 +2,7 @@ import open3d as o3d
 import numpy as np
 
 from deplex.utils import DepthImage
+import deplex
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -10,14 +11,14 @@ from pathlib import Path
 
 data_dir = Path(__file__).parent.parent.parent.resolve() / "benchmark-artifact/data"
 image_path = data_dir / Path("depth") / Path("000004415622.png")
-config_path = data_dir / Path("config/cPlusPlus") / Path("TUM_fr3_long_val.ini")
+config_path = data_dir / Path("config") / Path("TUM_fr3_long_val.ini")
 intrinsics_path = data_dir / Path("config") / Path("intrinsics.K")
 
 csv_file_labels = "" # File with marked planes
 def alg():
-    camera_intrinsic = np.genfromtxt(intrinsics_path, delimiter=',')
-
-    image = DepthImage(image_path)
+    config = deplex.Config(str(config_path))
+    camera_intrinsic = np.genfromtxt(intrinsics_path)
+    image = DepthImage(str(image_path))
     pcd_points = image.transform_to_pcd(camera_intrinsic)
 
     print("Image Height:", image.height, "Image Width:", image.width)
@@ -31,7 +32,11 @@ def alg():
 
     o3d.visualization.draw_geometries([open3d_pcd])
 
-    labels = np.genfromtxt(csv_file_labels, delimiter=',')
+    coarse_algorithm = deplex.PlaneExtractor(image_height=image.height, image_width=image.width, config=config)
+
+    labels = coarse_algorithm.process(pcd_points)
+
+    # labels = np.genfromtxt(csv_file_labels, delimiter=',')
 
 
     print(f"Number of found planes: {max(labels)}")
@@ -53,12 +58,10 @@ def alg():
 def graphic():
     data = np.genfromtxt(Path(data_dir) / Path('process_sequence_50_snapshot.csv'), delimiter=',')
 
-    # Создаем boxplot
     sns.boxplot(data=[data])
-
     plt.xticks([0], ['stable'])
-
-    plt.ylabel("Время (мс.)")
+    plt.ylabel("Time (ms.)")
+    plt.savefig("boxplot.png", dpi=300, bbox_inches='tight')
 
     plt.show()
 if __name__ == '__main__':

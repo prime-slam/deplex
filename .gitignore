@@ -44,6 +44,9 @@ install
 # IDE
 .idea
 
+#macOS
+.DS_Store
+
 # Build dir
 cmake-build-debug
 cmake-build-release
