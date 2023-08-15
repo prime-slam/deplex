@@ -9,14 +9,14 @@
 
 using uint = unsigned int;
 
-long long calculateVariance(const Eigen::VectorXi& data, long long mean) {
-  long long sum = 0;
+double calculateVariance(const Eigen::VectorXi& data, double mean) {
+  double sum = 0;
 
   for (auto x : data) {
     sum += (x - mean) * (x - mean);
   }
 
-  sum /= data.size();
+  sum /= static_cast<double>(data.size());
   return sum;
 }
 
@@ -82,25 +82,25 @@ int main(int argc, char* argv[]) {
 
   long long elapsed_time_min = *std::min_element(test_duration.begin(), test_duration.end());
   long long elapsed_time_max = *std::max_element(test_duration.begin(), test_duration.end());
-  long long elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0) / NUMBER_OF_SNAPSHOT;
+  double elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0.0) / NUMBER_OF_SNAPSHOT;
 
-  long long dispersion = calculateVariance(test_duration, elapsed_time_mean);
+  double dispersion = calculateVariance(test_duration, elapsed_time_mean);
   double standard_deviation = sqrt(dispersion);
   double standard_error = standard_deviation / sqrt(NUMBER_OF_SNAPSHOT);
 
   // 95% confidence interval
   const float t_value = 1.96;
-  double lower_bound = static_cast<double>(elapsed_time_mean) - t_value * standard_error;
-  double upper_bound = static_cast<double>(elapsed_time_mean) + t_value * standard_error;
+  double lower_bound = elapsed_time_mean - t_value * standard_error;
+  double upper_bound = elapsed_time_mean + t_value * standard_error;
 
-  std::cout << "\nDispersion: " << dispersion << std::endl;
-  std::cout << "Standard deviation: " << standard_deviation << std::endl;
-  std::cout << "Standard error: " << standard_error << std::endl;
+  std::cout << "\nDispersion: " << dispersion << '\n';
+  std::cout << "Standard deviation: " << standard_deviation << '\n';
+  std::cout << "Standard error: " << standard_error << '\n';
   std::cout << "Confidence interval (95%): [" << lower_bound << "; " << upper_bound << "]\n\n";
 
-  std::cout << "Elapsed time (ms.) (min): " << elapsed_time_min << '\n';
-  std::cout << "Elapsed time (ms.) (max): " << elapsed_time_max << '\n';
-  std::cout << "Elapsed time (ms.) (mean): " << elapsed_time_mean << '\n';
+  std::cout << "Elapsed time (ms.) (min): " << elapsed_time_min / 1000 << '\n';
+  std::cout << "Elapsed time (ms.) (max): " << elapsed_time_max / 1000 << '\n';
+  std::cout << "Elapsed time (ms.) (mean): " << elapsed_time_mean / 1000 << '\n';
   std::cout << "FPS (max): " << 1e6l / elapsed_time_min << '\n';
   std::cout << "FPS (min): " << 1e6l / elapsed_time_max << '\n';
   std::cout << "FPS (mean): " << 1e6l / elapsed_time_mean << '\n';
