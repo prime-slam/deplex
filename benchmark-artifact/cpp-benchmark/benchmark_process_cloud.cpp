@@ -29,9 +29,8 @@ int main() {
 
   auto start_time = std::chrono::high_resolution_clock::now();
   auto end_time = std::chrono::high_resolution_clock::now();
-  long long time;
 
-  int NUMBER_OF_RUNS = 20;
+  const int NUMBER_OF_RUNS = 20;
   Eigen::VectorXi test_duration = Eigen::VectorXi::Zero(NUMBER_OF_RUNS);
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
@@ -51,8 +50,7 @@ int main() {
     labels = algorithm.process(pcd_array);
     end_time = std::chrono::high_resolution_clock::now();
 
-    time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-    test_duration[i] = static_cast<int>(time);
+    test_duration[i] = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
   }
 
   found_planes = labels.maxCoeff();
@@ -60,7 +58,6 @@ int main() {
   deplex::utils::savePointCloudCSV(test_duration.cast<float>().transpose(), (data_dir / "process_cloud.csv").string());
 
   double elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0.0) / NUMBER_OF_RUNS;
-
   double dispersion = calculateVariance(test_duration, elapsed_time_mean);
   double standard_deviation = sqrt(dispersion);
   double standard_error = standard_deviation / sqrt(NUMBER_OF_RUNS);
@@ -75,8 +72,8 @@ int main() {
   std::cout << "Standard deviation: " << standard_deviation << '\n';
   std::cout << "Standard error: " << standard_error << '\n';
   std::cout << "Confidence interval (95%): [" << lower_bound << "; " << upper_bound << "]\n\n";
-  std::cout << "Elapsed time (ms.): " << elapsed_time_mean / 1000 << '\n';
-  std::cout << "FPS: " << 1e6l / elapsed_time_mean << '\n';
+  std::cout << "Elapsed time (ms.): " << elapsed_time_mean << '\n';
+  std::cout << "FPS: " << 1000 / elapsed_time_mean << '\n';
 
   return 0;
 }

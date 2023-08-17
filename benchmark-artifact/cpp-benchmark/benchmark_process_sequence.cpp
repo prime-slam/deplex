@@ -9,7 +9,7 @@
 
 using uint = unsigned int;
 
-double calculateVariance(const Eigen::VectorXi& data, double mean) {
+double calculateVariance(const Eigen::VectorXd& data, double mean) {
   double sum = 0;
 
   for (auto x : data) {
@@ -29,12 +29,11 @@ int main(int argc, char* argv[]) {
 
   auto start_time = std::chrono::high_resolution_clock::now();
   auto end_time = std::chrono::high_resolution_clock::now();
-  long long time;
 
-  int NUMBER_OF_RUNS = 10;
-  int NUMBER_OF_SNAPSHOT = 50;
+  const int NUMBER_OF_RUNS = 1;
+  const int NUMBER_OF_SNAPSHOT = 50;
 
-  Eigen::VectorXi test_duration = Eigen::VectorXi::Zero(NUMBER_OF_SNAPSHOT);
+  Eigen::VectorXd test_duration = Eigen::VectorXd::Zero(NUMBER_OF_SNAPSHOT);
 
   std::string dataset_path = (argc > 1 ? argv[1] : (data_dir / "depth").string());
 
@@ -55,7 +54,6 @@ int main(int argc, char* argv[]) {
 
   for (uint i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
     std::cout << "SNAPSHOT #" << i + 1;
-    time = 0;
 
     for (int t = 0; t < NUMBER_OF_RUNS; ++t) {
       start_time = std::chrono::high_resolution_clock::now();
@@ -66,12 +64,10 @@ int main(int argc, char* argv[]) {
 
       end_time = std::chrono::high_resolution_clock::now();
 
-      time += std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+      test_duration[i] += static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
     }
 
-    time /= NUMBER_OF_RUNS;
-
-    test_duration[i] = static_cast<int>(time);
+    test_duration[i] /= NUMBER_OF_RUNS;
 
     found_planes = labels.maxCoeff();
     std::cout << ' ' << found_planes << " planes found" << std::endl;
@@ -80,8 +76,8 @@ int main(int argc, char* argv[]) {
       test_duration.cast<float>().transpose(),
       (data_dir / ("process_sequence_" + std::to_string(NUMBER_OF_SNAPSHOT) + "_snapshot.csv")).string());
 
-  long long elapsed_time_min = *std::min_element(test_duration.begin(), test_duration.end());
-  long long elapsed_time_max = *std::max_element(test_duration.begin(), test_duration.end());
+  double elapsed_time_min = *std::min_element(test_duration.begin(), test_duration.end());
+  double elapsed_time_max = *std::max_element(test_duration.begin(), test_duration.end());
   double elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0.0) / NUMBER_OF_SNAPSHOT;
 
   double dispersion = calculateVariance(test_duration, elapsed_time_mean);
@@ -98,12 +94,12 @@ int main(int argc, char* argv[]) {
   std::cout << "Standard error: " << standard_error << '\n';
   std::cout << "Confidence interval (95%): [" << lower_bound << "; " << upper_bound << "]\n\n";
 
-  std::cout << "Elapsed time (ms.) (min): " << elapsed_time_min / 1000 << '\n';
-  std::cout << "Elapsed time (ms.) (max): " << elapsed_time_max / 1000 << '\n';
-  std::cout << "Elapsed time (ms.) (mean): " << elapsed_time_mean / 1000 << '\n';
-  std::cout << "FPS (max): " << 1e6l / elapsed_time_min << '\n';
-  std::cout << "FPS (min): " << 1e6l / elapsed_time_max << '\n';
-  std::cout << "FPS (mean): " << 1e6l / elapsed_time_mean << '\n';
+  std::cout << "Elapsed time (ms.) (min): " << elapsed_time_min << '\n';
+  std::cout << "Elapsed time (ms.) (max): " << elapsed_time_max << '\n';
+  std::cout << "Elapsed time (ms.) (mean): " << elapsed_time_mean << '\n';
+  std::cout << "FPS (max): " << 1000 / elapsed_time_min << '\n';
+  std::cout << "FPS (min): " << 1000 / elapsed_time_max << '\n';
+  std::cout << "FPS (mean): " << 1000 / elapsed_time_mean << '\n';
 
   return 0;
 }
