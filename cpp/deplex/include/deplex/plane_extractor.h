@@ -52,6 +52,11 @@ class PlaneExtractor {
 
  private:
   class Impl;
+
+
+
+
+  
   std::unique_ptr<Impl> impl_;
 };
 }  // namespace deplex
