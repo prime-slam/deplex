@@ -65,6 +65,14 @@ Config::Config(std::string const& config_path) {
       depth_discontinuity_threshold = std::stof(value);
     } else if (key == "maxNumberDepthDiscontinuity") {
       max_number_depth_discontinuity = std::stoi(value);
+    } else if (key == "ransacRefinement") {
+      ransac_refinement = static_cast<bool>(std::stoi(value));
+    } else if (key == "ransacMaxIterations") {
+      ransac_max_iterations = std::stoi(value);
+    } else if (key == "ransacThreshold") {
+      ransac_threshold = std::stof(value);
+    } else if (key == "ransacInliersRatio") {
+      ransac_inliers_ratio = std::stof(value);
     } else {
       std::cerr << "Unknown parameter name: " << key << '\n';
     }

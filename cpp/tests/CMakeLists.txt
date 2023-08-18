@@ -29,12 +29,14 @@ add_executable(unit-tests
         test_plane_extractor.cpp
         test_config.cpp
         test_depth_image.cpp
+        test_refinement.cpp
         )
 
 target_include_directories(unit-tests SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(unit-tests PRIVATE GTest::gtest_main)
 target_link_libraries(unit-tests PRIVATE deplex)
+target_include_directories(unit-tests PRIVATE ${CMAKE_SOURCE_DIR}/cpp/deplex/src)
 
 #####################################
 # Run tests target
