@@ -29,8 +29,8 @@
 #include "cell_grid.h"
 #include "normals_histogram.h"
 
-#include <rtl/RANSAC.hpp>
 #include <rtl/Plane.hpp>
+#include <rtl/RANSAC.hpp>
 
 #ifdef BENCHMARK_LOGGING
 namespace {
@@ -256,7 +256,7 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
     refineLabels(pcd_array, &labels);
 #ifdef BENCHMARK_LOGGING
     std::clog << "[BenchmarkLogging] Labels refinement: "
-            << get_benchmark_time<decltype(std::chrono::microseconds())>(time_labels_creation) << '\n';
+              << get_benchmark_time<decltype(std::chrono::microseconds())>(time_labels_creation) << '\n';
 #endif
 #ifdef DEBUG_DEPLEX
     of.open("dbg_4_refined_labels.csv");
