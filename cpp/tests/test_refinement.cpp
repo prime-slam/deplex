@@ -15,18 +15,18 @@
  */
 #include <gtest/gtest.h>
 
+#include <deplex/cell_segment_stat.h>
 #include <deplex/config.h>
 #include <deplex/plane_extractor.h>
 #include <deplex/utils/depth_image.h>
 #include <deplex/utils/eigen_io.h>
-#include <deplex/cell_segment_stat.h>
 
 #include "globals.hpp"
 
 namespace deplex {
 namespace {
 
-float getPlaneMSE (PlaneExtractor& algorithm, Eigen::MatrixX3f points, int32_t label) {
+float getPlaneMSE(PlaneExtractor& algorithm, Eigen::MatrixX3f points, int32_t label) {
   auto labels = algorithm.process(points);
   Eigen::MatrixX3f plane(std::count(labels.begin(), labels.end(), label), 3);
   int row_id = 0;
@@ -73,7 +73,6 @@ TEST(ICLPlaneExtraction, Refinement) {
 
   ASSERT_LE(refined_MSE, coarse_MSE);
 }
-
 
 }  // namespace
 }  // namespace deplex
