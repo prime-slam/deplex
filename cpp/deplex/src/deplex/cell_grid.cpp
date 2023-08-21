@@ -43,6 +43,51 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
   }
 }
 
+CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& points, config::Config const& config,
+                   int32_t number_horizontal_cells, int32_t number_vertical_cells, ctpl::thread_pool& pool)
+    : cell_width_(config.patch_size),
+      cell_height_(config.patch_size),
+      number_horizontal_cells_(number_horizontal_cells),
+      number_vertical_cells_(number_vertical_cells),
+      parent_(number_vertical_cells * number_horizontal_cells),
+      component_size_(number_vertical_cells * number_horizontal_cells, 1),
+      planar_mask_(number_vertical_cells * number_horizontal_cells) {
+  cell_grid_.reserve(planar_mask_.size());
+  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cell_continuous_points(points.rows(), points.cols());
+  cellContinuousOrganize(points, &cell_continuous_points);
+
+  std::vector<Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>>> cell_points;
+
+  cell_points.reserve(number_horizontal_cells_ * number_vertical_cells_);
+
+  for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
+    Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;
+    cell_points.emplace_back(cell_continuous_points.data() + offset, cell_width_ * cell_height_, 3);
+  }
+
+  std::vector<std::future<void>> flag;
+
+  flag.reserve(config.number_threads);
+
+  for (Eigen::Index i = 0; i < config.number_threads; ++i) {
+    flag.emplace_back(pool.push([this, config, cell_points, i](int) {
+      for (Eigen::Index cell_id = i; cell_id < number_horizontal_cells_ * number_vertical_cells_;
+           cell_id += config.number_threads) {
+        cell_grid_[cell_id] = CellSegment(cell_points[cell_id], config);
+      }
+    }));
+  }
+
+  for (int32_t i = 0; i < config.number_threads; ++i) {
+    flag[i].get();
+  }
+
+  for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
+    parent_[cell_id] = cell_id;
+    planar_mask_[cell_id] = cell_grid_[cell_id].isPlanar();
+  }
+}
+
 size_t CellGrid::findLabel(size_t cell_id) {
   return (parent_[cell_id] == cell_id) ? cell_id : parent_[cell_id] = findLabel(parent_[cell_id]);
 }

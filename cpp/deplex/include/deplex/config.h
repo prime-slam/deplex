@@ -79,6 +79,8 @@ struct Config {
   float ransac_threshold = 1.;
   // Minimal inliers ratio for plane points to be valid
   float ransac_inliers_ratio = 0.9;
+  // The number of threads used in parallel algorithms.
+  int32_t number_threads = 8;
 };
 }  // namespace config
 }  // namespace deplex

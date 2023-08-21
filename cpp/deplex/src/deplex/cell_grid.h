@@ -19,6 +19,8 @@
 
 #include "cell_segment.h"
 
+#include "CTPL/ctpl_stl.h"
+
 namespace deplex {
 /**
  * Class to store and work with cell-related data
@@ -35,6 +37,9 @@ class CellGrid {
    */
   CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& points, config::Config const& config,
            int32_t number_horizontal_cells, int32_t number_vertical_cells);
+
+  CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& points, config::Config const& config,
+           int32_t number_horizontal_cells, int32_t number_vertical_cells, ctpl::thread_pool& pool);
 
   /**
    * Get cell's label.

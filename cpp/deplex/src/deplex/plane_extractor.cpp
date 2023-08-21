@@ -26,6 +26,7 @@
 #include <chrono>
 #endif
 
+#include "CTPL/ctpl_stl.h"
 #include "cell_grid.h"
 #include "normals_histogram.h"
 
@@ -73,6 +74,7 @@ class PlaneExtractor::Impl {
   int32_t image_height_;
   int32_t image_width_;
   Eigen::MatrixXi labels_map_;
+  ctpl::thread_pool pool;
 
   /**
    * Initialize histogram from planar cells of cell grid.
@@ -150,6 +152,7 @@ class PlaneExtractor::Impl {
 
 PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Config config)
     : config_(config),
+      pool(config.number_threads),
       nr_horizontal_cells_(image_width / std::max(config.patch_size, 1)),
       nr_vertical_cells_(image_height / std::max(config.patch_size, 1)),
       image_height_(image_height),
@@ -183,7 +186,7 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
 #ifdef BENCHMARK_LOGGING
   auto time_init_cell_grid = std::chrono::high_resolution_clock::now();
 #endif
-  CellGrid cell_grid(pcd_array, config_, nr_horizontal_cells_, nr_vertical_cells_);
+  CellGrid cell_grid(pcd_array, config_, nr_horizontal_cells_, nr_vertical_cells_, pool);
 #ifdef BENCHMARK_LOGGING
   std::clog << "[BenchmarkLogging] Cell Grid Initialization: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_init_cell_grid) << '\n';
