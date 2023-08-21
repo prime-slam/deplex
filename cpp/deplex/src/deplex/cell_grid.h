@@ -19,7 +19,7 @@
 
 #include "cell_segment.h"
 
-#include "CTPL/ctpl_stl.h"
+#include <ctpl_stl.h>
 
 namespace deplex {
 /**

@@ -26,10 +26,10 @@
 #include <chrono>
 #endif
 
-#include "CTPL/ctpl_stl.h"
 #include "cell_grid.h"
 #include "normals_histogram.h"
 
+#include <ctpl_stl.h>
 #include <rtl/Plane.hpp>
 #include <rtl/RANSAC.hpp>
 
