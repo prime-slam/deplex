@@ -33,12 +33,13 @@ int main(int argc, char* argv[]) {
   const int NUMBER_OF_RUNS = 1;
   const int NUMBER_OF_SNAPSHOT = 50;
 
-  Eigen::VectorXd test_duration = Eigen::VectorXd::Zero(NUMBER_OF_SNAPSHOT);
+  Eigen::VectorXd execution_time = Eigen::VectorXd::Zero(NUMBER_OF_SNAPSHOT);
 
   std::string dataset_path = (argc > 1 ? argv[1] : (data_dir / "depth").string());
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
   Eigen::Matrix3f intrinsics(deplex::utils::readIntrinsics(intrinsics_path.string()));
+  deplex::utils::DepthImage image(image_path.string());
 
   // Sort data entries
   std::vector<std::filesystem::directory_entry> sorted_input_data;
@@ -50,7 +51,8 @@ int main(int argc, char* argv[]) {
   sort(sorted_input_data.begin(), sorted_input_data.end());
 
   Eigen::VectorXi labels;
-  int found_planes;
+
+  std::cout << "Image Height: " << image.getHeight() << " Image Width: " << image.getWidth() << "\n\n";
 
   for (uint i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
     std::cout << "SNAPSHOT #" << i + 1;
@@ -58,29 +60,28 @@ int main(int argc, char* argv[]) {
     for (int t = 0; t < NUMBER_OF_RUNS; ++t) {
       start_time = std::chrono::high_resolution_clock::now();
 
-      deplex::utils::DepthImage image(sorted_input_data[i].path().string());
+      image = deplex::utils::DepthImage(sorted_input_data[i].path().string());
       auto algorithm = deplex::PlaneExtractor(image.getHeight(), image.getWidth(), config);
       labels = algorithm.process(image.toPointCloud(intrinsics));
 
       end_time = std::chrono::high_resolution_clock::now();
-
-      test_duration[i] += static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
+      execution_time[i] +=
+          static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
     }
 
-    test_duration[i] /= NUMBER_OF_RUNS;
+    execution_time[i] /= NUMBER_OF_RUNS;
 
-    found_planes = labels.maxCoeff();
-    std::cout << ' ' << found_planes << " planes found" << std::endl;
+    std::cout << " Planes found: " << labels.maxCoeff() << std::endl;
   }
   deplex::utils::savePointCloudCSV(
-      test_duration.cast<float>().transpose(),
+      execution_time.cast<float>().transpose(),
       (data_dir / ("process_sequence_" + std::to_string(NUMBER_OF_SNAPSHOT) + "_snapshot.csv")).string());
 
-  double elapsed_time_min = *std::min_element(test_duration.begin(), test_duration.end());
-  double elapsed_time_max = *std::max_element(test_duration.begin(), test_duration.end());
-  double elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0.0) / NUMBER_OF_SNAPSHOT;
+  double elapsed_time_min = *std::min_element(execution_time.begin(), execution_time.end());
+  double elapsed_time_max = *std::max_element(execution_time.begin(), execution_time.end());
+  double elapsed_time_mean = std::accumulate(execution_time.begin(), execution_time.end(), 0.0) / NUMBER_OF_SNAPSHOT;
 
-  double dispersion = calculateVariance(test_duration, elapsed_time_mean);
+  double dispersion = calculateVariance(execution_time, elapsed_time_mean);
   double standard_deviation = sqrt(dispersion);
   double standard_error = standard_deviation / sqrt(NUMBER_OF_SNAPSHOT);
 

@@ -31,7 +31,7 @@ int main() {
   auto end_time = std::chrono::high_resolution_clock::now();
 
   const int NUMBER_OF_RUNS = 20;
-  Eigen::VectorXi test_duration = Eigen::VectorXi::Zero(NUMBER_OF_RUNS);
+  Eigen::VectorXi execution_time = Eigen::VectorXi::Zero(NUMBER_OF_RUNS);
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
   Eigen::Matrix3f intrinsics(deplex::utils::readIntrinsics(intrinsics_path.string()));
@@ -39,26 +39,27 @@ int main() {
   Eigen::MatrixXf pcd_array = image.toPointCloud(intrinsics);
 
   auto algorithm = deplex::PlaneExtractor(image.getHeight(), image.getWidth(), config);
-
   Eigen::VectorXi labels;
-  int found_planes;
+
+  std::cout << "Image Height: " << image.getHeight() << " Image Width: " << image.getWidth() << "\n\n";
 
   for (int i = 0; i < NUMBER_OF_RUNS; ++i) {
-    std::cout << "Iteration #" << i + 1 << std::endl;
-
     start_time = std::chrono::high_resolution_clock::now();
     labels = algorithm.process(pcd_array);
     end_time = std::chrono::high_resolution_clock::now();
 
-    test_duration[i] = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
+    execution_time[i] =
+        static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
+    std::cout << "Iteration #" << i + 1 << " Planes found: " << labels.maxCoeff() << std::endl;
   }
 
-  found_planes = labels.maxCoeff();
+  deplex::utils::savePointCloudCSV(execution_time.cast<float>().transpose(), (data_dir / "process_cloud.csv").string());
 
-  deplex::utils::savePointCloudCSV(test_duration.cast<float>().transpose(), (data_dir / "process_cloud.csv").string());
+  double elapsed_time_min = *std::min_element(execution_time.begin(), execution_time.end());
+  double elapsed_time_max = *std::max_element(execution_time.begin(), execution_time.end());
+  double elapsed_time_mean = std::accumulate(execution_time.begin(), execution_time.end(), 0.0) / NUMBER_OF_RUNS;
 
-  double elapsed_time_mean = std::accumulate(test_duration.begin(), test_duration.end(), 0.0) / NUMBER_OF_RUNS;
-  double dispersion = calculateVariance(test_duration, elapsed_time_mean);
+  double dispersion = calculateVariance(execution_time, elapsed_time_mean);
   double standard_deviation = sqrt(dispersion);
   double standard_error = standard_deviation / sqrt(NUMBER_OF_RUNS);
 
@@ -67,13 +68,17 @@ int main() {
   double lower_bound = elapsed_time_mean - t_value * standard_error;
   double upper_bound = elapsed_time_mean + t_value * standard_error;
 
-  std::cout << "\nFound planes: " << found_planes << '\n';
-  std::cout << "Dispersion: " << dispersion << '\n';
+  std::cout << "\nDispersion: " << dispersion << '\n';
   std::cout << "Standard deviation: " << standard_deviation << '\n';
   std::cout << "Standard error: " << standard_error << '\n';
   std::cout << "Confidence interval (95%): [" << lower_bound << "; " << upper_bound << "]\n\n";
-  std::cout << "Elapsed time (ms.): " << elapsed_time_mean << '\n';
-  std::cout << "FPS: " << 1000 / elapsed_time_mean << '\n';
+
+  std::cout << "Elapsed time (ms.) (min): " << elapsed_time_min << '\n';
+  std::cout << "Elapsed time (ms.) (max): " << elapsed_time_max << '\n';
+  std::cout << "Elapsed time (ms.) (mean): " << elapsed_time_mean << '\n';
+  std::cout << "FPS (max): " << 1000 / elapsed_time_min << '\n';
+  std::cout << "FPS (min): " << 1000 / elapsed_time_max << '\n';
+  std::cout << "FPS (mean): " << 1000 / elapsed_time_mean << '\n';
 
   return 0;
 }
