@@ -9,7 +9,7 @@
 
 using uint = unsigned int;
 
-double calculateVariance(const Eigen::VectorXd& data, double mean) {
+double variance(const Eigen::VectorXd& data, double mean) {
   double sum = 0;
 
   for (auto x : data) {
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
   double elapsed_time_max = *std::max_element(execution_time.begin(), execution_time.end());
   double elapsed_time_mean = std::accumulate(execution_time.begin(), execution_time.end(), 0.0) / NUMBER_OF_SNAPSHOT;
 
-  double dispersion = calculateVariance(execution_time, elapsed_time_mean);
+  double dispersion = variance(execution_time, elapsed_time_mean);
   double standard_deviation = sqrt(dispersion);
   double standard_error = standard_deviation / sqrt(NUMBER_OF_SNAPSHOT);
 

@@ -9,7 +9,7 @@
 
 using uint = unsigned int;
 
-double calculateVariance(const Eigen::VectorXi& data, double mean) {
+double variance(const Eigen::VectorXi& data, double mean) {
   double sum = 0;
 
   for (auto x : data) {
@@ -30,7 +30,7 @@ int main() {
   auto start_time = std::chrono::high_resolution_clock::now();
   auto end_time = std::chrono::high_resolution_clock::now();
 
-  const int NUMBER_OF_RUNS = 20;
+  const int NUMBER_OF_RUNS = 1;
   Eigen::VectorXi execution_time = Eigen::VectorXi::Zero(NUMBER_OF_RUNS);
 
   deplex::config::Config config = deplex::config::Config(config_path.string());
@@ -59,7 +59,7 @@ int main() {
   double elapsed_time_max = *std::max_element(execution_time.begin(), execution_time.end());
   double elapsed_time_mean = std::accumulate(execution_time.begin(), execution_time.end(), 0.0) / NUMBER_OF_RUNS;
 
-  double dispersion = calculateVariance(execution_time, elapsed_time_mean);
+  double dispersion = variance(execution_time, elapsed_time_mean);
   double standard_deviation = sqrt(dispersion);
   double standard_error = standard_deviation / sqrt(NUMBER_OF_RUNS);
 
