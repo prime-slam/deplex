@@ -37,7 +37,7 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;
     new (&cell_points) decltype(cell_points)(cell_continuous_points.data() + offset, cell_width_ * cell_height_, 3);
-    cell_grid_[cell_id] = CellSegment(cell_points, config);
+    cell_grid_[cell_id] = std::move(CellSegment(cell_points, config));
     parent_[cell_id] = cell_id;
     planar_mask_[cell_id] = cell_grid_[cell_id].isPlanar();
   }
