@@ -37,6 +37,13 @@ endif ()
 add_library(${TARGET_NAME} ${SRC_FILES})
 
 #####################################
+# TCMalloc
+#####################################
+add_dependencies(${TARGET_NAME} gperftools)
+set(PLATFORM_LINKFLAGS "-L${CMAKE_BINARY_DIR}/_deps/gperftools/.libs" "-ltcmalloc")
+target_link_libraries(${TARGET_NAME} PRIVATE ${PLATFORM_LINKFLAGS})
+
+#####################################
 # Define Target Properties
 #####################################
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 14)
