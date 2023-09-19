@@ -24,7 +24,7 @@ find_package(Eigen3 REQUIRED)
 #####################################
 # mimalloc
 #####################################
-find_package(mimalloc 2.1.2 REQUIRED)
+find_package(mimalloc REQUIRED)
 
 #####################################
 # Optional packages
@@ -77,7 +77,7 @@ target_include_directories(
 target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
 target_link_libraries(${TARGET_NAME} PRIVATE dsyev)
 target_link_libraries(${TARGET_NAME} PRIVATE rtl)
-target_link_libraries(deplex PUBLIC mimalloc)
+target_link_libraries(deplex PRIVATE mimalloc)
 if (OpenMP_CXX_FOUND)
     target_link_libraries(${TARGET_NAME} PRIVATE OpenMP::OpenMP_CXX)
 endif ()
