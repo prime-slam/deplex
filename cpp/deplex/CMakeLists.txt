@@ -22,11 +22,6 @@ set(SRC_FILES
 find_package(Eigen3 REQUIRED)
 
 #####################################
-# mimalloc
-#####################################
-find_package(mimalloc REQUIRED)
-
-#####################################
 # Optional packages
 #####################################
 if (EXPERIMENTAL_OPENMP)
