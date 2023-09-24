@@ -15,6 +15,7 @@
  */
 #include "cell_grid.h"
 
+#include <iostream>
 #include <utility>
 
 namespace deplex {
@@ -33,7 +34,7 @@ CellGrid::CellGrid(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> cons
 
   Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>> cell_points(cell_continuous_points.data(),
                                                                                          cell_width_ * cell_height_, 3);
-#pragma omp parallel for default(none) shared(cell_continuous_points, config, cell_points)
+#pragma omp parallel for shared(cell_continuous_points, config) firstprivate(cell_points)
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     Eigen::Index offset = cell_id * cell_height_ * cell_width_ * 3;
     new (&cell_points) decltype(cell_points)(cell_continuous_points.data() + offset, cell_width_ * cell_height_, 3);
@@ -64,24 +65,12 @@ CellSegment const& CellGrid::operator[](size_t cell_id) const { return cell_grid
 
 std::vector<bool> const& CellGrid::getPlanarMask() const { return planar_mask_; }
 
-std::vector<size_t> CellGrid::getNeighbours(size_t cell_id) const {
-  std::vector<size_t> neighbours;
-  size_t x = cell_id / number_horizontal_cells_;
-  size_t y = cell_id % number_horizontal_cells_;
-  if (x >= 1) neighbours.push_back(cell_id - number_horizontal_cells_);
-  if (x + 1 < number_vertical_cells_) neighbours.push_back(cell_id + number_horizontal_cells_);
-  if (y >= 1) neighbours.push_back(cell_id - 1);
-  if (y + 1 < number_horizontal_cells_) neighbours.push_back(cell_id + 1);
-
-  return neighbours;
-}
-
 size_t CellGrid::size() const { return planar_mask_.size(); }
 
 void CellGrid::cellContinuousOrganize(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
                                       Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>* organized_pcd) {
   int32_t image_width = number_horizontal_cells_ * cell_width_;
-#pragma omp parallel for default(none) shared(cell_width, cell_height, organized_pcd, unorganized_data)
+#pragma omp parallel for shared(cell_width_, cell_height_, organized_pcd, unorganized_data, image_width)
   for (Eigen::Index cell_id = 0; cell_id < number_horizontal_cells_ * number_vertical_cells_; ++cell_id) {
     Eigen::Index outer_cell_stride = cell_width_ * cell_height_ * cell_id;
     for (Eigen::Index i = 0; i < cell_height_; ++i) {

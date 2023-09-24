@@ -73,13 +73,6 @@ class CellGrid {
   std::vector<bool> const& getPlanarMask() const;
 
   /**
-   * Get cell 2D-neighbours indices
-   *
-   * @returns Vector of neighbours indices (Maximum 4 neighbours)
-   */
-  std::vector<size_t> getNeighbours(size_t cell_id) const;
-
-  /**
    * Number of total cells
    *
    * @returns Number of total cells

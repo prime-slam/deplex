@@ -18,6 +18,9 @@
 #include <algorithm>
 #include <numeric>
 #include <queue>
+#include <map>
+#include <iostream>
+
 #if defined(DEBUG_DEPLEX) || defined(BENCHMARK_LOGGING)
 #include <fstream>
 #include <iostream>
@@ -73,6 +76,7 @@ class PlaneExtractor::Impl {
   int32_t image_height_;
   int32_t image_width_;
   Eigen::MatrixXi labels_map_;
+  std::vector<std::vector<Eigen::Index>> neighbours;
 
   /**
    * Initialize histogram from planar cells of cell grid.
@@ -159,6 +163,17 @@ PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Co
   if (config.patch_size == 0) {
     throw std::runtime_error("Error! Invalid config parameter: patchSize(" + std::to_string(config.patch_size) +
                              "). patchSize has to be positive.");
+  }
+
+  neighbours.resize(nr_horizontal_cells_ * nr_vertical_cells_);
+
+  for (Eigen::Index i = 0; i < nr_horizontal_cells_ * nr_vertical_cells_; ++i) {
+    size_t x = i / nr_horizontal_cells_;
+    size_t y = i % nr_horizontal_cells_;
+    if (x >= 1) neighbours[i].push_back(i - nr_horizontal_cells_);
+    if (x + 1 < nr_vertical_cells_) neighbours[i].push_back(i + nr_horizontal_cells_);
+    if (y >= 1) neighbours[i].push_back(i - 1);
+    if (y + 1 < nr_horizontal_cells_) neighbours[i].push_back(i + 1);
   }
 }
 
@@ -356,9 +371,7 @@ std::vector<size_t> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::ve
     double d_current = cell_grid[current_seed].getStat().getD();
     Eigen::Vector3f normal_current = cell_grid[current_seed].getStat().getNormal();
 
-    std::vector<size_t> neighbours = cell_grid.getNeighbours(current_seed);
-
-    for (auto neighbour : neighbours) {
+    for (size_t neighbour : neighbours[current_seed]) {
       if (!unassigned[neighbour] || activation_map[neighbour]) {
         continue;
       }
