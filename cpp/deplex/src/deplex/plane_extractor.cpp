@@ -135,7 +135,7 @@ class PlaneExtractor::Impl {
    * @returns Vector of activated cells after growSeed call.
    */
   std::vector<size_t> growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
-                             CellGrid const& cell_grid) const;
+                               CellGrid const& cell_grid) const;
 
   /**
    * Get vector of potentially mergeable cell components.
@@ -319,7 +319,7 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
     std::vector<size_t> cells_to_merge = growSeed(seed_id, unassigned_mask, cell_grid);
 
     // 4. Merge activated cells & remove from hist
-    for (auto &v : cells_to_merge) {
+    for (auto& v : cells_to_merge) {
       plane_candidate += cell_grid[v];
       hist.removePoint(static_cast<int32_t>(v));
       unassigned_mask[v] = false;
@@ -336,8 +336,9 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
     if (plane_candidate.getStat().getScore() > config_.min_region_planarity_score) {
       plane_segments.push_back(plane_candidate);
       auto nr_curr_planes = static_cast<int32_t>(plane_segments.size());
-      for (auto &v : cells_to_merge) {
-        labels_map_.row(static_cast<long>(v) / nr_horizontal_cells_)[static_cast<long>(v) % nr_horizontal_cells_] = nr_curr_planes;
+      for (auto& v : cells_to_merge) {
+        labels_map_.row(static_cast<long>(v) / nr_horizontal_cells_)[static_cast<long>(v) % nr_horizontal_cells_] =
+            nr_curr_planes;
       }
     }
   }
@@ -346,8 +347,7 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
 }
 
 std::vector<size_t> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::vector<bool> const& unassigned,
-                                                 CellGrid const& cell_grid) const {
-
+                                                   CellGrid const& cell_grid) const {
   std::vector<bool> activation_map(unassigned.size(), false);
   std::vector<size_t> cells_to_merge;
 
