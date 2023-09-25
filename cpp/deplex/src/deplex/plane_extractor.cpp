@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <numeric>
 #include <queue>
+#include <iostream>
 #if defined(DEBUG_DEPLEX) || defined(BENCHMARK_LOGGING)
 #include <fstream>
 #include <iostream>
@@ -442,30 +443,20 @@ std::vector<std::vector<bool>> PlaneExtractor::Impl::getConnectedComponents(size
 }
 
 Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& merge_labels) {
-  Eigen::MatrixXi labels(Eigen::MatrixXi::Zero(image_height_, image_width_));
+  Eigen::VectorXi labels(Eigen::VectorXi::Zero(image_width_ * image_height_));
 
   int32_t cell_width = config_.patch_size;
   int32_t cell_height = config_.patch_size;
 
-  int32_t stacked_cell_id = 0;
-  for (auto row = 0; row < labels_map_.rows(); ++row) {
-    for (auto col = 0; col < labels_map_.cols(); ++col) {
-      auto cell_row = stacked_cell_id / nr_horizontal_cells_;
-      auto cell_col = stacked_cell_id % nr_horizontal_cells_;
-      // Fill cell with label
-      auto label_row = cell_row * cell_height;
-      auto label_col = cell_col * cell_width;
-      for (auto i = label_row; i < label_row + cell_height; ++i) {
-        for (auto j = label_col; j < label_col + cell_width; ++j) {
-          auto label = labels_map_.row(row)[col];
-          labels.row(i)[j] = (label == 0 ? 0 : merge_labels[label - 1] + 1);
-        }
-      }
-      ++stacked_cell_id;
+  for (auto row = 0; row < image_height_; ++row) {
+    for (auto col = 0; col < image_width_; ++col) {
+      auto label = labels_map_.row(row / cell_height)[col / cell_width];
+
+      labels[row * image_width_ + col] = (label == 0 ? 0 : merge_labels[label - 1] + 1);
     }
   }
 
-  return labels.reshaped<Eigen::RowMajor>();
+  return labels;
 }
 
 void PlaneExtractor::Impl::refineLabels(Eigen::MatrixX3f const& pcd_array, Eigen::VectorXi* labels) {
