@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <numeric>
 #include <queue>
-#include <iostream>
 #if defined(DEBUG_DEPLEX) || defined(BENCHMARK_LOGGING)
 #include <fstream>
 #include <iostream>
@@ -448,10 +447,10 @@ Eigen::VectorXi PlaneExtractor::Impl::toImageLabels(std::vector<int32_t> const& 
   int32_t cell_width = config_.patch_size;
   int32_t cell_height = config_.patch_size;
 
+#pragma omp parallel for default(none) shared(labels, cell_height, cell_width, merge_labels)
   for (auto row = 0; row < image_height_; ++row) {
     for (auto col = 0; col < image_width_; ++col) {
       auto label = labels_map_.row(row / cell_height)[col / cell_width];
-
       labels[row * image_width_ + col] = (label == 0 ? 0 : merge_labels[label - 1] + 1);
     }
   }
