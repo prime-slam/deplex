@@ -34,6 +34,18 @@ DepthImage::DepthImage(std::string const& image_path) : width_(0), height_(0) {
     throw std::runtime_error("Error: Couldn't read image " + image_path);
   }
   image_.reset(data_ptr);
+
+  column_indices = Eigen::VectorXf::LinSpaced(width_, 0.0, width_ - 1).replicate(height_, 1);
+  row_indices = Eigen::VectorXf::LinSpaced(height_, 0.0, height_ - 1).replicate(1, width_).reshaped<Eigen::RowMajor>();
+}
+
+void DepthImage::reset(std::string const& image_path) {
+  int32_t actual_channels = 0;
+  auto data_ptr = stbi_load_16(image_path.c_str(), &width_, &height_, &actual_channels, STBI_grey);
+  if (data_ptr == nullptr) {
+    throw std::runtime_error("Error: Couldn't read image " + image_path);
+  }
+  image_.reset(data_ptr);
 }
 
 int32_t DepthImage::getWidth() const { return width_; }
@@ -41,24 +53,28 @@ int32_t DepthImage::getWidth() const { return width_; }
 int32_t DepthImage::getHeight() const { return height_; }
 
 Eigen::MatrixX3f DepthImage::toPointCloud(Eigen::Matrix3f const& intrinsics) const {
-  Eigen::VectorXf column_indices = Eigen::VectorXf::LinSpaced(width_, 0.0, width_ - 1).replicate(height_, 1);
-  Eigen::VectorXf row_indices =
-      Eigen::VectorXf::LinSpaced(height_, 0.0, height_ - 1).replicate(1, width_).reshaped<Eigen::RowMajor>();
-
   Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> pcd_points(width_ * height_, 3);
 
   float fx = intrinsics.row(0)[0];
-  float fy = intrinsics.row(1)[1];
   float cx = intrinsics.row(0)[2];
+  float fy = intrinsics.row(1)[1];
   float cy = intrinsics.row(1)[2];
 
   typedef std::remove_reference<decltype(*image_)>::type t_image;
   pcd_points.col(2) = Eigen::Map<Eigen::Vector<t_image, Eigen::Dynamic>>(image_.get(), width_ * height_).cast<float>();
-  pcd_points.col(0) = (column_indices.array() - cx) * pcd_points.col(2).array() / fx;
-  pcd_points.col(1) = (row_indices.array() - cy) * pcd_points.col(2).array() / fy;
+
+#pragma omp parallel default(none) shared(pcd_points, column_indices, row_indices, cx, cy, fx, fy)
+  {
+#pragma omp sections
+    {
+#pragma omp section
+      { pcd_points.col(0) = (column_indices.array() - cx) * pcd_points.col(2).array() / fx; }
+#pragma omp section
+      { pcd_points.col(1) = (row_indices.array() - cy) * pcd_points.col(2).array() / fy; }
+    }
+  }
 
   return pcd_points;
 }
-
 }  // namespace utils
 }  // namespace deplex

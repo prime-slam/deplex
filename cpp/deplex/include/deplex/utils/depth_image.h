@@ -44,10 +44,15 @@ class DepthImage {
    */
   Eigen::MatrixX3f toPointCloud(Eigen::Matrix3f const& intrinsics) const;
 
+  void reset(std::string const& image_path);
+
  private:
   std::unique_ptr<unsigned short> image_;
   int32_t width_;
   int32_t height_;
+
+  Eigen::VectorXf column_indices;
+  Eigen::VectorXf row_indices;
 };
 }  // namespace utils
 }  // namespace deplex
