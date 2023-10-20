@@ -20,6 +20,7 @@ set(SRC_FILES
 # Required packages
 #####################################
 find_package(Eigen3 REQUIRED)
+find_package(mimalloc REQUIRED)
 
 #####################################
 # Optional packages
@@ -72,9 +73,7 @@ target_include_directories(
 target_link_libraries(${TARGET_NAME} PUBLIC Eigen3::Eigen)
 target_link_libraries(${TARGET_NAME} PRIVATE dsyev)
 target_link_libraries(${TARGET_NAME} PRIVATE rtl)
-
-set(PLATFORM_LINKFLAGS "-L${mimalloc_BINARY_DIR}/libmimalloc.dylib" "mimalloc")
-target_link_libraries(${TARGET_NAME} PRIVATE ${PLATFORM_LINKFLAGS})
+target_link_libraries(${TARGET_NAME} PUBLIC mimalloc)
 
 if (OpenMP_CXX_FOUND)
     target_link_libraries(${TARGET_NAME} PRIVATE OpenMP::OpenMP_CXX)
