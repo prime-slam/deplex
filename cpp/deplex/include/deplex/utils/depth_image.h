@@ -51,8 +51,8 @@ class DepthImage {
   int32_t width_;
   int32_t height_;
 
-  Eigen::VectorXf column_indices;
-  Eigen::VectorXf row_indices;
+  Eigen::VectorXf column_indices_;
+  Eigen::VectorXf row_indices_;
 };
 }  // namespace utils
 }  // namespace deplex
