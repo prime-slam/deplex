@@ -35,8 +35,8 @@ DepthImage::DepthImage(std::string const& image_path) : width_(0), height_(0) {
   }
   image_.reset(data_ptr);
 
-  column_indices = Eigen::VectorXf::LinSpaced(width_, 0.0, width_ - 1).replicate(height_, 1);
-  row_indices = Eigen::VectorXf::LinSpaced(height_, 0.0, height_ - 1).replicate(1, width_).reshaped<Eigen::RowMajor>();
+  column_indices_ = Eigen::VectorXf::LinSpaced(width_, 0.0, width_ - 1).replicate(height_, 1);
+  row_indices_ = Eigen::VectorXf::LinSpaced(height_, 0.0, height_ - 1).replicate(1, width_).reshaped<Eigen::RowMajor>();
 }
 
 void DepthImage::reset(std::string const& image_path) {
@@ -68,9 +68,9 @@ Eigen::MatrixX3f DepthImage::toPointCloud(Eigen::Matrix3f const& intrinsics) con
 #pragma omp sections
     {
 #pragma omp section
-      { pcd_points.col(0) = (column_indices.array() - cx) * pcd_points.col(2).array() / fx; }
+      { pcd_points.col(0) = (column_indices_.array() - cx) * pcd_points.col(2).array() / fx; }
 #pragma omp section
-      { pcd_points.col(1) = (row_indices.array() - cy) * pcd_points.col(2).array() / fy; }
+      { pcd_points.col(1) = (row_indices_.array() - cy) * pcd_points.col(2).array() / fy; }
     }
   }
 
