@@ -20,7 +20,6 @@ set(SRC_FILES
 # Required packages
 #####################################
 find_package(Eigen3 REQUIRED)
-find_package(mimalloc REQUIRED)
 
 #####################################
 # Optional packages
