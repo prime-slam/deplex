@@ -74,7 +74,7 @@ class PlaneExtractor::Impl {
   int32_t image_height_;
   int32_t image_width_;
   Eigen::MatrixXi labels_map_;
-  std::vector<std::vector<Eigen::Index>> neighbours;
+  std::vector<std::vector<Eigen::Index>> neighbours_;
 
   /**
    * Initialize histogram from planar cells of cell grid.
@@ -163,15 +163,15 @@ PlaneExtractor::Impl::Impl(int32_t image_height, int32_t image_width, config::Co
                              "). patchSize has to be positive.");
   }
 
-  neighbours.resize(nr_horizontal_cells_ * nr_vertical_cells_);
+  neighbours_.resize(nr_horizontal_cells_ * nr_vertical_cells_);
 
   for (Eigen::Index i = 0; i < nr_horizontal_cells_ * nr_vertical_cells_; ++i) {
     size_t x = i / nr_horizontal_cells_;
     size_t y = i % nr_horizontal_cells_;
-    if (x >= 1) neighbours[i].push_back(i - nr_horizontal_cells_);
-    if (x + 1 < nr_vertical_cells_) neighbours[i].push_back(i + nr_horizontal_cells_);
-    if (y >= 1) neighbours[i].push_back(i - 1);
-    if (y + 1 < nr_horizontal_cells_) neighbours[i].push_back(i + 1);
+    if (x >= 1) neighbours_[i].push_back(i - nr_horizontal_cells_);
+    if (x + 1 < nr_vertical_cells_) neighbours_[i].push_back(i + nr_horizontal_cells_);
+    if (y >= 1) neighbours_[i].push_back(i - 1);
+    if (y + 1 < nr_horizontal_cells_) neighbours_[i].push_back(i + 1);
   }
 }
 
@@ -319,7 +319,7 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
     std::vector<size_t> cells_to_merge = growSeed(seed_id, unassigned_mask, cell_grid);
 
     // 4. Merge activated cells & remove from hist
-    for (auto& v : cells_to_merge) {
+    for (auto v : cells_to_merge) {
       plane_candidate += cell_grid[v];
       hist.removePoint(static_cast<int32_t>(v));
       unassigned_mask[v] = false;
@@ -336,7 +336,7 @@ std::vector<CellSegment> PlaneExtractor::Impl::createPlaneSegments(CellGrid cons
     if (plane_candidate.getStat().getScore() > config_.min_region_planarity_score) {
       plane_segments.push_back(plane_candidate);
       auto nr_curr_planes = static_cast<int32_t>(plane_segments.size());
-      for (auto& v : cells_to_merge) {
+      for (auto v : cells_to_merge) {
         labels_map_.row(static_cast<long>(v) / nr_horizontal_cells_)[static_cast<long>(v) % nr_horizontal_cells_] =
             nr_curr_planes;
       }
@@ -369,7 +369,7 @@ std::vector<size_t> PlaneExtractor::Impl::growSeed(Eigen::Index seed_id, std::ve
     double d_current = cell_grid[current_seed].getStat().getD();
     Eigen::Vector3f normal_current = cell_grid[current_seed].getStat().getNormal();
 
-    for (size_t neighbour : neighbours[current_seed]) {
+    for (size_t neighbour : neighbours_[current_seed]) {
       if (!unassigned[neighbour] || activation_map[neighbour]) {
         continue;
       }
