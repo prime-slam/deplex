@@ -15,7 +15,6 @@
  */
 #include "cell_grid.h"
 
-#include <iostream>
 #include <utility>
 
 namespace deplex {
