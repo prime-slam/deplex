@@ -64,18 +64,6 @@ CellSegment const& CellGrid::operator[](size_t cell_id) const { return cell_grid
 
 std::vector<bool> const& CellGrid::getPlanarMask() const { return planar_mask_; }
 
-std::vector<size_t> CellGrid::getNeighbours(size_t cell_id) const {
-  std::vector<size_t> neighbours;
-  size_t x = cell_id / number_horizontal_cells_;
-  size_t y = cell_id % number_horizontal_cells_;
-  if (x >= 1) neighbours.push_back(cell_id - number_horizontal_cells_);
-  if (x + 1 < number_vertical_cells_) neighbours.push_back(cell_id + number_horizontal_cells_);
-  if (y >= 1) neighbours.push_back(cell_id - 1);
-  if (y + 1 < number_horizontal_cells_) neighbours.push_back(cell_id + 1);
-
-  return neighbours;
-}
-
 size_t CellGrid::size() const { return planar_mask_.size(); }
 
 void CellGrid::cellContinuousOrganize(Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> const& unorganized_data,
