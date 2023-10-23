@@ -20,7 +20,7 @@ double variance(const Eigen::VectorXd& data, double mean) {
 
 int main() {
   std::filesystem::path data_dir =
-      std::filesystem::current_path().parent_path().parent_path().parent_path() / "benchmark-artifact/data";
+      std::filesystem::current_path().parent_path().parent_path().parent_path() / "benchmark/data";
   std::filesystem::path image_path = data_dir / "depth/000004415622.png";
   std::filesystem::path intrinsics_path = data_dir / "config/intrinsics.K";
   std::filesystem::path config_path = data_dir / "config/TUM_fr3_long_val.ini";
@@ -67,18 +67,6 @@ int main() {
   }
 
   auto execution_time_segmentation_stage = algorithm.GetExecutionTime();
-
-  for (auto& v : execution_time_segmentation_stage) {
-    for (auto& stage : v) {
-      stage /= NUMBER_OF_RUNS;
-    }
-  }
-
-  for (auto& v : execution_time_stage) {
-    for (auto& stage : v) {
-      stage /= NUMBER_OF_RUNS;
-    }
-  }
 
   Eigen::VectorXd elements = Eigen::VectorXd::Zero(NUMBER_OF_RUNS);
   for (auto i = 0; i < NUMBER_OF_RUNS; ++i) {

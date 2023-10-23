@@ -20,7 +20,7 @@ double variance(const Eigen::VectorXd& data, double mean) {
 
 int main(int argc, char* argv[]) {
   std::filesystem::path data_dir =
-      std::filesystem::current_path().parent_path().parent_path().parent_path() / "benchmark-artifact/data";
+      std::filesystem::current_path().parent_path().parent_path().parent_path() / "benchmark/data";
   std::filesystem::path image_path = data_dir / "depth/000004415622.png";
   std::filesystem::path intrinsics_path = data_dir / "config/intrinsics.K";
   std::filesystem::path config_path = data_dir / "config/TUM_fr3_long_val.ini";
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
   auto end_time = std::chrono::high_resolution_clock::now();
 
-  const int NUMBER_OF_RUNS = 1;
+  const int NUMBER_OF_RUNS = 10;
   const int NUMBER_OF_SNAPSHOT = 1;
 
   std::vector<Eigen::Vector3d> execution_time_stage(NUMBER_OF_SNAPSHOT, Eigen::VectorXd::Zero(3));

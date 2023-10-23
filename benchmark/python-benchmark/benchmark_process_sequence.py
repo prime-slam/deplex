@@ -1,18 +1,19 @@
 from deplex.utils import DepthImage
 import deplex
 
+import os
 import timeit
 import numpy as np
 
 from pathlib import Path
 
-data_dir = Path(__file__).parent.parent.parent.resolve() / "benchmark-artifact/data"
+data_dir = Path(__file__).parent.parent.parent.resolve() / "benchmark/data"
 image_path = data_dir / Path("depth") / Path("000004415622.png")
 config_path = data_dir / Path("config") / Path("TUM_fr3_long_val.ini")
 intrinsics_path = data_dir / Path("config") / Path("intrinsics.K")
 
-def benchmarkProcessCloud():
-    NUMBER_OF_RUNS = 10
+def benchmarkProcessSequence():
+    NUMBER_OF_SNAPSHOT = 50
 
     execution_time = []
 
@@ -20,18 +21,22 @@ def benchmarkProcessCloud():
     camera_intrinsic = np.genfromtxt(intrinsics_path)
     image = DepthImage(str(image_path))
 
+    images = [filename for filename in os.listdir(data_dir / Path("depth")) if filename.endswith('.png')]
+    images.sort()
+
     print("Image Height:", image.height, "Image Width:", image.width, '\n')
 
-    for i in range(NUMBER_OF_RUNS):
+    for i in range(NUMBER_OF_SNAPSHOT):
         start_time = timeit.default_timer()
 
+        image = DepthImage(str(os.path.join(data_dir / Path("depth"), images[i])))
         pcd_points = image.transform_to_pcd(camera_intrinsic)
         coarse_algorithm = deplex.PlaneExtractor(image_height=image.height, image_width=image.width, config=config)
         labels = coarse_algorithm.process(pcd_points)
 
         end_time = timeit.default_timer()
         execution_time.append((end_time - start_time) * 1000)
-        print(f'Iteration #{i + 1} Planes found: {max(labels)}')
+        print(f'SNAPSHOT #{i + 1} Planes found: {max(labels)}')
 
     elapsed_time_min = min(execution_time)
     elapsed_time_max = max(execution_time)
@@ -39,7 +44,7 @@ def benchmarkProcessCloud():
 
     dispersion = np.var(execution_time)
     standard_deviation = np.std(execution_time)
-    standard_error = standard_deviation / np.sqrt(NUMBER_OF_RUNS)
+    standard_error = standard_deviation / np.sqrt(NUMBER_OF_SNAPSHOT)
 
     # 95% confidence interval
     t_value = 1.96
@@ -59,4 +64,4 @@ def benchmarkProcessCloud():
     print('FPS (mean):', f"{1000 /elapsed_time_mean:.5f}")
 
 if __name__ == '__main__':
-    benchmarkProcessCloud()
+    benchmarkProcessSequence()
