@@ -47,6 +47,8 @@ class PlaneExtractor {
    */
   Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
 
+  std::vector<Eigen::Vector3d> GetExecutionTime();
+
   PlaneExtractor(PlaneExtractor&& op) noexcept;
   PlaneExtractor& operator=(PlaneExtractor&& op) noexcept;
 

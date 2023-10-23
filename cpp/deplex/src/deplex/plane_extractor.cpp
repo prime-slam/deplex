@@ -16,6 +16,7 @@
 #include "deplex/plane_extractor.h"
 
 #include <algorithm>
+#include <chrono>
 #include <numeric>
 #include <queue>
 
@@ -66,6 +67,9 @@ class PlaneExtractor::Impl {
    * 0-value label refers to non-planar segment.
    */
   Eigen::VectorXi process(Eigen::MatrixX3f const& pcd_array);
+
+  std::vector<Eigen::Vector3d> execution_time{100, Eigen::VectorXd::Zero(4)};
+  size_t index_image = 0;
 
  private:
   config::Config config_;
@@ -184,6 +188,8 @@ PlaneExtractor::PlaneExtractor(int32_t image_height, int32_t image_width, config
 
 Eigen::VectorXi PlaneExtractor::process(Eigen::MatrixX3f const& pcd_array) { return impl_->process(pcd_array); }
 
+std::vector<Eigen::Vector3d> PlaneExtractor::GetExecutionTime() { return impl_->execution_time; }
+
 Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array) {
   if (pcd_array.rows() != image_width_ * image_height_) {
     std::string msg_points_size = std::to_string(pcd_array.rows());
@@ -192,11 +198,15 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
     throw std::runtime_error("Error! Number of points doesn't match image shape: " + msg_points_size +
                              " != " + msg_height + " x " + msg_width);
   }
-  // 1. Initialize cell grid (Planarity estimation)
+// 1. Initialize cell grid (Planarity estimation)
 #ifdef BENCHMARK_LOGGING
   auto time_init_cell_grid = std::chrono::high_resolution_clock::now();
 #endif
+  auto start_time = std::chrono::high_resolution_clock::now();
   CellGrid cell_grid(pcd_array, config_, nr_horizontal_cells_, nr_vertical_cells_);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  execution_time[index_image][0] +=
+      static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count());
 #ifdef BENCHMARK_LOGGING
   std::clog << "[BenchmarkLogging] Cell Grid Initialization: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_init_cell_grid) << '\n';
@@ -206,7 +216,7 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
   std::clog << "[DebugInfo] Planar cell found: "
             << std::count(cell_grid.getPlanarMask().begin(), cell_grid.getPlanarMask().end(), true) << '\n';
 #endif
-  // 2. Find dominant cell normals
+// 2. Find dominant cell normals
 #ifdef BENCHMARK_LOGGING
   auto time_init_histogram = std::chrono::high_resolution_clock::now();
 #endif
@@ -215,11 +225,15 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
   std::clog << "[BenchmarkLogging] Histogram Initialization: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_init_histogram) << '\n';
 #endif
-  // 3. Region growing
+// 3. Region growing
 #ifdef BENCHMARK_LOGGING
   auto time_region_growing = std::chrono::high_resolution_clock::now();
 #endif
+  start_time = std::chrono::high_resolution_clock::now();
   auto plane_segments = createPlaneSegments(cell_grid, hist);
+  end_time = std::chrono::high_resolution_clock::now();
+  execution_time[index_image][1] +=
+      static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count());
 #ifdef BENCHMARK_LOGGING
   std::clog << "[BenchmarkLogging] Region Growing: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_region_growing) << '\n';
@@ -230,11 +244,15 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
   if (plane_segments.empty()) {
     return Eigen::VectorXi::Zero(pcd_array.rows());
   }
-  // 5. Merge planes
+// 5. Merge planes
 #ifdef BENCHMARK_LOGGING
   auto time_merge_planes = std::chrono::high_resolution_clock::now();
 #endif
+  start_time = std::chrono::high_resolution_clock::now();
   std::vector<int32_t> merge_labels = findMergedLabels(&plane_segments);
+  end_time = std::chrono::high_resolution_clock::now();
+  execution_time[index_image][2] +=
+      static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count());
 #ifdef BENCHMARK_LOGGING
   std::clog << "[BenchmarkLogging] Merge Planes: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_merge_planes) << '\n';
@@ -250,7 +268,11 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
 #ifdef BENCHMARK_LOGGING
   auto time_labels_creation = std::chrono::high_resolution_clock::now();
 #endif
+  start_time = std::chrono::high_resolution_clock::now();
   Eigen::VectorXi labels = toImageLabels(merge_labels);
+  end_time = std::chrono::high_resolution_clock::now();
+  execution_time[index_image][3] +=
+      static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count());
 #ifdef BENCHMARK_LOGGING
   std::clog << "[BenchmarkLogging] Labels creation: "
             << get_benchmark_time<decltype(std::chrono::microseconds())>(time_labels_creation) << '\n';
@@ -277,6 +299,10 @@ Eigen::VectorXi PlaneExtractor::Impl::process(Eigen::MatrixX3f const& pcd_array)
               .format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n"));
 #endif
   }
+  if (++index_image == 100) {
+    index_image = 0;
+  }
+
   // 8. Cleanup
   cleanArtifacts();
   return labels;

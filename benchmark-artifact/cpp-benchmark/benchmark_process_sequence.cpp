@@ -7,8 +7,6 @@
 #include <iostream>
 #include <numeric>
 
-using uint = unsigned int;
-
 double variance(const Eigen::VectorXd& data, double mean) {
   double sum = 0;
 
@@ -31,9 +29,9 @@ int main(int argc, char* argv[]) {
   auto end_time = std::chrono::high_resolution_clock::now();
 
   const int NUMBER_OF_RUNS = 1;
-  const int NUMBER_OF_SNAPSHOT = 50;
+  const int NUMBER_OF_SNAPSHOT = 1;
 
-  Eigen::VectorXd execution_time = Eigen::VectorXd::Zero(NUMBER_OF_SNAPSHOT);
+  std::vector<Eigen::Vector3d> execution_time_stage(NUMBER_OF_SNAPSHOT, Eigen::VectorXd::Zero(3));
 
   std::string dataset_path = (argc > 1 ? argv[1] : (data_dir / "depth").string());
 
@@ -52,36 +50,113 @@ int main(int argc, char* argv[]) {
 
   Eigen::VectorXi labels;
 
+  deplex::PlaneExtractor algorithm(image.getHeight(), image.getWidth(), config);
   std::cout << "Image Height: " << image.getHeight() << " Image Width: " << image.getWidth() << "\n\n";
 
-  for (uint i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
-    std::cout << "SNAPSHOT #" << i + 1;
+  for (int t = 0; t < NUMBER_OF_RUNS; ++t) {
+    std::cout << "LAUNCH #" << t + 1 << std::endl;
 
-    for (int t = 0; t < NUMBER_OF_RUNS; ++t) {
+    for (Eigen::Index i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
       start_time = std::chrono::high_resolution_clock::now();
-
-      image = deplex::utils::DepthImage(sorted_input_data[i].path().string());
-      auto algorithm = deplex::PlaneExtractor(image.getHeight(), image.getWidth(), config);
-      labels = algorithm.process(image.toPointCloud(intrinsics));
-
+      image.reset(sorted_input_data[i].path().string());
       end_time = std::chrono::high_resolution_clock::now();
-      execution_time[i] +=
+      execution_time_stage[i][0] +=
           static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
+
+      start_time = std::chrono::high_resolution_clock::now();
+      auto pcd_array = image.toPointCloud(intrinsics);
+      end_time = std::chrono::high_resolution_clock::now();
+      execution_time_stage[i][1] +=
+          static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
+
+      start_time = std::chrono::high_resolution_clock::now();
+      labels = algorithm.process(pcd_array);
+      end_time = std::chrono::high_resolution_clock::now();
+      execution_time_stage[i][2] +=
+          static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count());
+
+      std::cout << "Snapshot #" << i + 1 << " Planes found: " << labels.maxCoeff() << std::endl;
     }
-
-    execution_time[i] /= NUMBER_OF_RUNS;
-
-    std::cout << " Planes found: " << labels.maxCoeff() << std::endl;
   }
-  deplex::utils::savePointCloudCSV(
-      execution_time.cast<float>().transpose(),
-      (data_dir / ("process_sequence_" + std::to_string(NUMBER_OF_SNAPSHOT) + "_snapshot.csv")).string());
 
-  double elapsed_time_min = *std::min_element(execution_time.begin(), execution_time.end());
-  double elapsed_time_max = *std::max_element(execution_time.begin(), execution_time.end());
-  double elapsed_time_mean = std::accumulate(execution_time.begin(), execution_time.end(), 0.0) / NUMBER_OF_SNAPSHOT;
+  auto execution_time_segmentation_stage = algorithm.GetExecutionTime();
 
-  double dispersion = variance(execution_time, elapsed_time_mean);
+  for (auto& v : execution_time_segmentation_stage) {
+    for (auto& stage : v) {
+      stage /= NUMBER_OF_RUNS;
+    }
+  }
+
+  for (auto& v : execution_time_stage) {
+    for (auto& stage : v) {
+      stage /= NUMBER_OF_RUNS;
+    }
+  }
+
+  Eigen::VectorXd elements = Eigen::VectorXd::Zero(NUMBER_OF_SNAPSHOT);
+  for (auto i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
+    elements[i] = execution_time_stage[i][0];
+  }
+
+  deplex::utils::savePointCloudCSV(elements.cast<float>().transpose(),
+                                   (data_dir / ("process_sequence_stage_read_image.csv")).string());
+
+  for (auto i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
+    elements[i] = execution_time_stage[i][1];
+  }
+
+  deplex::utils::savePointCloudCSV(elements.cast<float>().transpose(),
+                                   (data_dir / ("process_sequence_stage_translate_image.csv")).string());
+
+  for (auto i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
+    elements[i] = execution_time_stage[i][2];
+  }
+
+  deplex::utils::savePointCloudCSV(elements.cast<float>().transpose(),
+                                   (data_dir / ("process_sequence_stage_segmentation.csv")).string());
+
+  for (auto i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
+    elements[i] = execution_time_segmentation_stage[i][0];
+  }
+
+  deplex::utils::savePointCloudCSV(elements.cast<float>().transpose(),
+                                   (data_dir / ("process_sequence_stage_segmentation_cell_grid.csv")).string());
+
+  for (auto i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
+    elements[i] = execution_time_segmentation_stage[i][1];
+  }
+
+  deplex::utils::savePointCloudCSV(elements.cast<float>().transpose(),
+                                   (data_dir / ("process_sequence_stage_segmentation_region_growing.csv")).string());
+
+  for (auto i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
+    elements[i] = execution_time_segmentation_stage[i][2];
+  }
+
+  deplex::utils::savePointCloudCSV(elements.cast<float>().transpose(),
+                                   (data_dir / ("process_sequence_stage_segmentation_merge_planes.csv")).string());
+
+  for (auto i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
+    elements[i] = execution_time_segmentation_stage[i][3];
+  }
+
+  deplex::utils::savePointCloudCSV(elements.cast<float>().transpose(),
+                                   (data_dir / ("process_sequence_stage_segmentation_labels.csv")).string());
+
+  Eigen::VectorXd total_time = Eigen::VectorXd::Zero(NUMBER_OF_SNAPSHOT);
+
+  for (auto i = 0; i < NUMBER_OF_SNAPSHOT; ++i) {
+    total_time[i] = execution_time_stage[i][0] + execution_time_stage[i][1] + execution_time_stage[i][2];
+  }
+
+  deplex::utils::savePointCloudCSV(total_time.cast<float>().transpose(),
+                                   (data_dir / ("process_sequence_total_time.csv")).string());
+
+  double elapsed_time_min = *std::min_element(total_time.begin(), total_time.end());
+  double elapsed_time_max = *std::max_element(total_time.begin(), total_time.end());
+  double elapsed_time_mean = std::accumulate(total_time.begin(), total_time.end(), 0.0) / NUMBER_OF_SNAPSHOT;
+
+  double dispersion = variance(total_time, elapsed_time_mean);
   double standard_deviation = sqrt(dispersion);
   double standard_error = standard_deviation / sqrt(NUMBER_OF_SNAPSHOT);
 
