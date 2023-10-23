@@ -63,7 +63,7 @@ Eigen::MatrixX3f DepthImage::toPointCloud(Eigen::Matrix3f const& intrinsics) con
   typedef std::remove_reference<decltype(*image_)>::type t_image;
   pcd_points.col(2) = Eigen::Map<Eigen::Vector<t_image, Eigen::Dynamic>>(image_.get(), width_ * height_).cast<float>();
 
-#pragma omp parallel default(none) shared(pcd_points, column_indices, row_indices, cx, cy, fx, fy)
+#pragma omp parallel default(none) shared(pcd_points, column_indices_, row_indices_, cx, cy, fx, fy)
   {
 #pragma omp sections
     {
