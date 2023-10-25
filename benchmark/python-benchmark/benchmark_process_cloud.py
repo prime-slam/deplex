@@ -11,6 +11,7 @@ image_path = data_dir / Path("depth") / Path("000004415622.png")
 config_path = data_dir / Path("config") / Path("TUM_fr3_long_val.ini")
 intrinsics_path = data_dir / Path("config") / Path("intrinsics.K")
 
+
 def benchmarkProcessCloud():
     NUMBER_OF_RUNS = 10
 
@@ -22,11 +23,13 @@ def benchmarkProcessCloud():
 
     print("Image Height:", image.height, "Image Width:", image.width, '\n')
 
+    coarse_algorithm = deplex.PlaneExtractor(image_height=image.height, image_width=image.width, config=config)
+
     for i in range(NUMBER_OF_RUNS):
         start_time = timeit.default_timer()
 
         pcd_points = image.transform_to_pcd(camera_intrinsic)
-        coarse_algorithm = deplex.PlaneExtractor(image_height=image.height, image_width=image.width, config=config)
+
         labels = coarse_algorithm.process(pcd_points)
 
         end_time = timeit.default_timer()
@@ -56,7 +59,8 @@ def benchmarkProcessCloud():
     print('Elapsed time (ms.) (mean):', f"{elapsed_time_mean:.5f}")
     print('FPS (max):', f"{1000 / elapsed_time_min:.5f}")
     print('FPS (min):', f"{1000 / elapsed_time_max:.5f}")
-    print('FPS (mean):', f"{1000 /elapsed_time_mean:.5f}")
+    print('FPS (mean):', f"{1000 / elapsed_time_mean:.5f}")
+
 
 if __name__ == '__main__':
     benchmarkProcessCloud()
