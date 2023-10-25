@@ -31,6 +31,7 @@ void pybind_depth_image(py::module& m) {
       .def(py::init<std::string>(), py::arg("image_path"))
       .def_property_readonly("height", &utils::DepthImage::getHeight)
       .def_property_readonly("width", &utils::DepthImage::getWidth)
-      .def("transform_to_pcd", &utils::DepthImage::toPointCloud, py::arg("intrinsics"));
+      .def("transform_to_pcd", &utils::DepthImage::toPointCloud, py::arg("intrinsics"))
+      .def("reset", &utils::DepthImage::reset, py::arg("image_path"));
 }
 }  // namespace deplex
